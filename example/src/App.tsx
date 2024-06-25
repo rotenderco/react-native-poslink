@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   useCallback,
   useEffect,
@@ -20,7 +19,7 @@ import {
   type POSLinkError,
   type POSLinkTernimal,
   type Reader
-} from "react-native-poslink";
+} from "@rotender/react-native-poslink";
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState<boolean>(false);

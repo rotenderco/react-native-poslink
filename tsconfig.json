@@ -2,13 +2,13 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "react-native-poslink": ["./src/index"]
+      "@rotender/react-native-poslink": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "lib": ["esnext"],
     "module": "esnext",
     "moduleResolution": "node",
