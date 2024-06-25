@@ -2,21 +2,15 @@
 
 A react native module of POSLink
 
-## Installation
+<!-- ## Installation
 
 ```sh
-npm install react-native-poslink
-```
+npm install @rotender/react-native-poslink
+``` -->
 
 ## Usage
 
-```js
-import { multiply } from 'react-native-poslink';
-
-// ...
-
-const result = await multiply(3, 7);
-```
+see [Example code](https://github.com/rotenderco/react-native-poslink/blob/main/example/src/App.tsx)
 
 ## Contributing
 

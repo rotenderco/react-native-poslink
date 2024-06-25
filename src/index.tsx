@@ -74,7 +74,7 @@ export interface POSLinkTernimal {
     port: string;
     timeout?: number;
   }) => Promise<POSLinkErrorResponse>;
-  setAmount: (amount: number) => void;
+  setAmount: (amount: number, tips: number) => void;
   collectAndCapture: () => Promise<POSLinkErrorResponse>;
 }
 
@@ -141,7 +141,9 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
     cancelDiscovering: POSLink.cancelDiscovering,
     connectBluetoothReader: POSLink.connectBluetoothReader,
     connectTcpReader: POSLink.connectTcpReader,
-    setAmount: POSLink.setAmount,
+    setAmount: (amount: number, tips: number = 0) => {
+      POSLink.setAmount(amount, tips);
+    },
     collectAndCapture: POSLink.collectAndCapture
   };
 }

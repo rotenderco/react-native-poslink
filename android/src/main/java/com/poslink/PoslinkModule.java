@@ -23,6 +23,7 @@ import com.pax.poslinkadmin.constant.TransactionType;
 import com.pax.poslinkadmin.util.AmountRequest;
 import com.pax.poslinksemiintegration.POSLinkSemi;
 import com.pax.poslinksemiintegration.Terminal;
+import com.pax.poslinksemiintegration.constant.TipRequestFlag;
 import com.pax.poslinksemiintegration.transaction.DoCreditRequest;
 import com.pax.poslinksemiintegration.transaction.DoCreditResponse;
 import com.pax.poslinksemiintegration.util.TraceRequest;
@@ -218,7 +219,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   @SuppressWarnings("unused")
-  public void setAmount(int amount) {
+  public void setAmount(int amount, int tips) {
     this.doCreditRequest = new DoCreditRequest();
     this.doCreditRequest.setTransactionType(TransactionType.SALE);
 
@@ -228,6 +229,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
 
     AmountRequest amountRequest = new AmountRequest();
     amountRequest.setTransactionAmount(String.valueOf(amount));
+    amountRequest.setTipAmount(String.valueOf(tips));
     this.doCreditRequest.setAmountInformation(amountRequest);
   }
 

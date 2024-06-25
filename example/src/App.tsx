@@ -12,7 +12,8 @@ import {
   View,
   Text,
   Button,
-  TextInput
+  TextInput,
+  ToastAndroid
 } from "react-native";
 import {
   usePOSLinkTerminal,
@@ -26,6 +27,7 @@ export default function App() {
   const [isDiscovering, setIsDiscovering] = useState<boolean>(false);
   const [connectStatus, setConnectStatus] = useState<string>("Disconnection");
   const [price, setPrice] = useState<string>("0");
+  const [tips, setTips] = useState<string>("0");
   const currentReader: MutableRefObject<Reader | undefined> = useRef<
     Reader | undefined
   >();
@@ -144,17 +146,18 @@ export default function App() {
   }, [connectBluetoothReader]);
 
   const startPOS = useCallback(async () => {
-    setAmount(Number(price) * 100);
+    setAmount(Number(price) * 100, Number(tips) * 100);
     console.log(`Start collecting for $${Number(price).toFixed(2)}`);
     const { error } = await collectAndCapture();
     if (error) {
       console.error("Capture failed: ", error.message);
       return;
     }
+    ToastAndroid.show("Payment Successfully", ToastAndroid.CENTER);
     console.log(
-      `Collect and capture successfully with $${Number(price).toFixed(2)}`
+      `Collect successfully with price($${Number(price).toFixed(2)})`
     );
-  }, [price, setAmount, collectAndCapture]);
+  }, [price, tips, setAmount, collectAndCapture]);
 
   return (
     <View style={styles.container}>
@@ -165,6 +168,18 @@ export default function App() {
         value={price}
         inputMode="decimal"
         onChangeText={setPrice}
+        style={{
+          width: 200,
+          borderColor: "#000",
+          borderWidth: 1,
+          marginBottom: 20
+        }}
+      ></TextInput>
+      <Text>Tips($):</Text>
+      <TextInput
+        value={tips}
+        inputMode="decimal"
+        onChangeText={setTips}
         style={{
           width: 200,
           borderColor: "#000",
