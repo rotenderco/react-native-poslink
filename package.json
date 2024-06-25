@@ -1,6 +1,6 @@
 {
   "name": "react-native-poslink",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "A react native module of POSLink",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -124,10 +124,12 @@
         "error",
         {
           "quoteProps": "consistent",
-          "singleQuote": true,
+          "singleQuote": false,
           "tabWidth": 2,
-          "trailingComma": "es5",
-          "useTabs": false
+          "trailingComma": "none",
+          "useTabs": false,
+          "semi": true,
+          "arrowParens": "avoid"
         }
       ]
     }

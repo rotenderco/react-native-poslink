@@ -1,2 +1,29 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- TCP/SSL/HTTP/HTTPS -->
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <!-- USB -->
+  <uses-feature android:name="android.hardware.usb.host" />
+
+  <!-- Bluetooth -->
+  <uses-permission android:name="android.permission.BLUETOOTH" />
+  <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+  <!-- dangerous level permission, targetSdkVersion greater than or equal to 23 -->
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <!-- dangerous level permission, targetSdkVersion greater than or equal to 31 -->
+  <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+
+  <!-- Update resource, select file from external storage -->
+  <!-- dangerous level permission, targetSdkVersion greater than or equal to 23 -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+
+  <!-- AIDL, targetSdkVersion greater than or equal to 30 -->
+  <queries>
+    <intent>
+      <action android:name="com.pax.us.std.poslink.aidl" />
+    </intent>
+  </queries>
 </manifest>
