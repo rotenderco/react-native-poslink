@@ -24,7 +24,6 @@ public class BluetoothScanner {
 
   public static final String NAME = "BluetoothScanner";
 
-  private final BluetoothAdapter bluetoothAdapter;
   private final BluetoothLeScanner bluetoothLeScanner;
   private boolean scanning = false;
   private final Handler handler = new Handler();
@@ -62,7 +61,7 @@ public class BluetoothScanner {
   public BluetoothScanner(ReactApplicationContext reactContext, RNDiscoveryListener listener) {
     this.listener = listener;
     BluetoothManager bluetoothManager = reactContext.getSystemService(BluetoothManager.class);
-    this.bluetoothAdapter = bluetoothManager.getAdapter();
+    BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
     this.bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
     Log.d(NAME, "Init the bluetooth scanner");
   }

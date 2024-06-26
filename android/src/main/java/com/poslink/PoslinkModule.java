@@ -27,6 +27,7 @@ import com.pax.poslinksemiintegration.constant.TipRequestFlag;
 import com.pax.poslinksemiintegration.transaction.DoCreditRequest;
 import com.pax.poslinksemiintegration.transaction.DoCreditResponse;
 import com.pax.poslinksemiintegration.util.TraceRequest;
+import com.pax.poslinksemiintegration.util.TransactionBehavior;
 import com.poslink.bluetoothscan.BluetoothScanner;
 import com.poslink.bluetoothscan.Reader;
 import com.poslink.exceptions.BluetoothConnectionException;
@@ -36,6 +37,7 @@ import com.poslink.exceptions.TcpConnectionException;
 import com.poslink.listeners.RNDiscoveryListener;
 
 import java.util.Objects;
+import java.util.concurrent.Executors;
 
 @ReactModule(name = PoslinkModule.NAME)
 public class PoslinkModule extends ReactContextBaseJavaModule {
@@ -223,13 +225,17 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     this.doCreditRequest = new DoCreditRequest();
     this.doCreditRequest.setTransactionType(TransactionType.SALE);
 
+//    TransactionBehavior transactionBehavior = TransactionBehavior.builder().build();
+//    transactionBehavior.setTipRequestFlag(TipRequestFlag.NEED_ENTER_TIP_ON_TERMINAL);
+//    this.doCreditRequest.setTransactionBehavior(transactionBehavior);
+
     TraceRequest traceRequest = new TraceRequest();
     traceRequest.setEcrReferenceNumber("1");
     this.doCreditRequest.setTraceInformation(traceRequest);
 
     AmountRequest amountRequest = new AmountRequest();
     amountRequest.setTransactionAmount(String.valueOf(amount));
-    amountRequest.setTipAmount(String.valueOf(tips));
+//    amountRequest.setTipAmount(String.valueOf(tips));
     this.doCreditRequest.setAmountInformation(amountRequest);
   }
 
@@ -237,23 +243,28 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @SuppressWarnings("unused")
   public void collectAndCapture(Promise promise) {
     Log.d(NAME, "Start credit request");
-    ExecutionResult<DoCreditResponse> executionResult = this.terminal.getTransaction().doCredit(this.doCreditRequest);
-    WritableMap retValueMap = Arguments.createMap();
-    if (executionResult.isSuccessful()) {
-      DoCreditResponse doCreditResponse = executionResult.response();
-      if (Objects.equals(doCreditResponse.responseCode(), ResponseCode.OK)) {
-        Log.d(NAME, "Payment successful: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
-        promise.resolve(retValueMap);
-      } else {
-        Log.e(NAME, "Payment failed: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
-        retValueMap.putMap("error", new PaymentException(Integer.parseInt(doCreditResponse.responseCode()), doCreditResponse.responseMessage()).toWritableMap());
-        promise.resolve(retValueMap);
+    Executors.newSingleThreadExecutor().submit(new Runnable() {
+      @Override
+      public void run() {
+        ExecutionResult<DoCreditResponse> executionResult = terminal.getTransaction().doCredit(doCreditRequest);
+        WritableMap retValueMap = Arguments.createMap();
+        if (executionResult.isSuccessful()) {
+          DoCreditResponse doCreditResponse = executionResult.response();
+          if (Objects.equals(doCreditResponse.responseCode(), ResponseCode.OK)) {
+            Log.d(NAME, "Payment successful: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
+            promise.resolve(retValueMap);
+          } else {
+            Log.e(NAME, "Payment failed: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
+            retValueMap.putMap("error", new PaymentException(Integer.parseInt(doCreditResponse.responseCode()), doCreditResponse.responseMessage()).toWritableMap());
+            promise.resolve(retValueMap);
+          }
+        } else {
+          Log.e(NAME, "Do credit request execution failed: " + executionResult.message());
+          retValueMap.putMap("error", new POSLinkException(500, "Capture Failed: " + executionResult.message()).toWritableMap());
+          promise.resolve(retValueMap);
+        }
       }
-    } else {
-      Log.e(NAME, "Do credit request execution failed: " + executionResult.message());
-      retValueMap.putMap("error", new POSLinkException(500, "Capture Failed: " + executionResult.message()).toWritableMap());
-      promise.resolve(retValueMap);
-    }
+    });
   }
 
   @ReactMethod(isBlockingSynchronousMethod = true)
