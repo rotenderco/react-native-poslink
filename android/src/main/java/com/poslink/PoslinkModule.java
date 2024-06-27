@@ -37,6 +37,7 @@ import com.poslink.exceptions.TcpConnectionException;
 import com.poslink.listeners.RNDiscoveryListener;
 
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 
 @ReactModule(name = PoslinkModule.NAME)
@@ -49,10 +50,11 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   private CommunicationSetting commSetting;
   private DoCreditRequest doCreditRequest;
 
+  private String ecrNumber;
+
   public PoslinkModule(ReactApplicationContext reactContext) {
     super(reactContext);
     commSetting = new AidlSetting();
-
   }
 
   @Override
@@ -70,7 +72,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   @SuppressWarnings("unused")
-  public void doInit() {
+  public void doInit(int ecrNumber) {
 //    this.setBluetoothSetting();
     // Setting logs
 //    logSetting.setEnable(sharedPreferences.getBoolean("LOG_ENABLE", true));
@@ -87,7 +89,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
 //    POSLinkSemi.getInstance().setLogSetting(logSetting);
 
 //    this.setBluetoothSetting();
-
+    this.ecrNumber = String.valueOf(ecrNumber);
     this.isInitialized = true;
     Log.d(NAME, "init POSLink");
 //    POSLinkAndroid.init(getReactApplicationContext());
@@ -221,21 +223,35 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   @SuppressWarnings("unused")
-  public void setAmount(int amount, int tips) {
+  public void setAmount(int amount) {
     this.doCreditRequest = new DoCreditRequest();
     this.doCreditRequest.setTransactionType(TransactionType.SALE);
 
-//    TransactionBehavior transactionBehavior = TransactionBehavior.builder().build();
-//    transactionBehavior.setTipRequestFlag(TipRequestFlag.NEED_ENTER_TIP_ON_TERMINAL);
-//    this.doCreditRequest.setTransactionBehavior(transactionBehavior);
-
     TraceRequest traceRequest = new TraceRequest();
-    traceRequest.setEcrReferenceNumber("1");
+    traceRequest.setEcrReferenceNumber(this.ecrNumber);
     this.doCreditRequest.setTraceInformation(traceRequest);
 
     AmountRequest amountRequest = new AmountRequest();
     amountRequest.setTransactionAmount(String.valueOf(amount));
-//    amountRequest.setTipAmount(String.valueOf(tips));
+    this.doCreditRequest.setAmountInformation(amountRequest);
+
+//    return ecrRefNumber;
+  }
+
+  @ReactMethod
+  @SuppressWarnings("unused")
+  public void setTips(int tips, String refNumber) {
+    this.doCreditRequest = new DoCreditRequest();
+    this.doCreditRequest.setTransactionType(TransactionType.ADJUST);
+
+    TraceRequest traceRequest = new TraceRequest();
+    traceRequest.setOriginalEcrReferenceNumber(this.ecrNumber);
+    traceRequest.setOriginalReferenceNumber(refNumber);
+    traceRequest.setEcrReferenceNumber(this.ecrNumber);
+    this.doCreditRequest.setTraceInformation(traceRequest);
+
+    AmountRequest amountRequest = new AmountRequest();
+    amountRequest.setTransactionAmount(String.valueOf(tips));
     this.doCreditRequest.setAmountInformation(amountRequest);
   }
 
@@ -252,6 +268,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
           DoCreditResponse doCreditResponse = executionResult.response();
           if (Objects.equals(doCreditResponse.responseCode(), ResponseCode.OK)) {
             Log.d(NAME, "Payment successful: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
+            retValueMap.putString("refNumber", doCreditResponse.traceInformation().referenceNumber());
             promise.resolve(retValueMap);
           } else {
             Log.e(NAME, "Payment failed: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());

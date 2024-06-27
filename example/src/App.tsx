@@ -27,7 +27,9 @@ export default function App() {
   const [isDiscovering, setIsDiscovering] = useState<boolean>(false);
   const [connectStatus, setConnectStatus] = useState<string>("Disconnection");
   const [price, setPrice] = useState<string>("0");
-  const [tips, setTips] = useState<string>("0");
+  const [tipValue, setTipValue] = useState<string>("0");
+  const [tiping, setTiping] = useState<boolean>(false);
+  const [refNumber, setRefNumber] = useState("");
   const currentReader: MutableRefObject<Reader | undefined> = useRef<
     Reader | undefined
   >();
@@ -66,6 +68,7 @@ export default function App() {
     connectBluetoothReader,
     cancelDiscovering,
     setAmount,
+    setTips,
     collectAndCapture
   } = poslinkTerminal;
 
@@ -104,7 +107,7 @@ export default function App() {
 
   useEffect(() => {
     if (hasPermission && !isInitialized) {
-      initialize();
+      initialize(17);
     }
   }, [hasPermission, isInitialized, initialize]);
 
@@ -146,8 +149,25 @@ export default function App() {
   }, [connectBluetoothReader]);
 
   const startPOS = useCallback(async () => {
-    setAmount(Number(price) * 100, Number(tips) * 100);
+    setAmount(Number(price) * 100);
     console.log(`Start collecting for $${Number(price).toFixed(2)}`);
+    const { error, refNumber } = await collectAndCapture();
+    if (error) {
+      console.error("Capture failed: ", error.message);
+      return;
+    }
+    setRefNumber(refNumber);
+    setTiping(true);
+    ToastAndroid.show("Payment Successfully", ToastAndroid.CENTER);
+    console.log(
+      `Collect successfully with price($${Number(price).toFixed(2)})`
+    );
+    setPrice("0");
+  }, [price, setAmount, collectAndCapture]);
+
+  const submit = useCallback(async () => {
+    setTips(Number(tipValue) * 100, refNumber);
+    console.log(`Start collecting tips for $${Number(tipValue).toFixed(2)}`);
     const { error } = await collectAndCapture();
     if (error) {
       console.error("Capture failed: ", error.message);
@@ -155,39 +175,49 @@ export default function App() {
     }
     ToastAndroid.show("Payment Successfully", ToastAndroid.CENTER);
     console.log(
-      `Collect successfully with price($${Number(price).toFixed(2)})`
+      `Payment successfully with tips($${Number(tipValue).toFixed(2)})`
     );
-  }, [price, tips, setAmount, collectAndCapture]);
+    setTiping(false);
+    setTipValue("0");
+  }, [tipValue, setTips, collectAndCapture, refNumber]);
 
   return (
     <View style={styles.container}>
       <Text>isInitialized: {String(isInitialized)}</Text>
       <Text style={{ marginBottom: 20 }}>Connected: {connectStatus}</Text>
-      <Text>Amount($):</Text>
-      <TextInput
-        value={price}
-        inputMode="decimal"
-        onChangeText={setPrice}
-        style={{
-          width: 200,
-          borderColor: "#000",
-          borderWidth: 1,
-          marginBottom: 20
-        }}
-      ></TextInput>
-      <Text>Tips($):</Text>
-      <TextInput
-        value={tips}
-        inputMode="decimal"
-        onChangeText={setTips}
-        style={{
-          width: 200,
-          borderColor: "#000",
-          borderWidth: 1,
-          marginBottom: 20
-        }}
-      ></TextInput>
-      <Button title="Collect" onPress={startPOS}></Button>
+      {tiping ? (
+        <>
+          <Text>Tips($):</Text>
+          <TextInput
+            value={tipValue}
+            inputMode="decimal"
+            onChangeText={setTipValue}
+            style={{
+              width: 200,
+              borderColor: "#000",
+              borderWidth: 1,
+              marginBottom: 20
+            }}
+          ></TextInput>
+          <Button title="Submit" onPress={submit}></Button>
+        </>
+      ) : (
+        <>
+          <Text>Amount($):</Text>
+          <TextInput
+            value={price}
+            inputMode="decimal"
+            onChangeText={setPrice}
+            style={{
+              width: 200,
+              borderColor: "#000",
+              borderWidth: 1,
+              marginBottom: 20
+            }}
+          ></TextInput>
+          <Button title="Collect" onPress={startPOS}></Button>
+        </>
+      )}
     </View>
   );
 }

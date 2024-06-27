@@ -61,7 +61,7 @@ export interface POSLinkErrorResponse {
 }
 
 export interface POSLinkTernimal {
-  initialize: () => void;
+  initialize: (ecrNumber: number) => void;
   isInitialized: boolean;
   discoverReaders: () => void;
   cancelDiscovering: () => Promise<boolean>;
@@ -74,8 +74,11 @@ export interface POSLinkTernimal {
     port: string;
     timeout?: number;
   }) => Promise<POSLinkErrorResponse>;
-  setAmount: (amount: number, tips: number) => void;
-  collectAndCapture: () => Promise<POSLinkErrorResponse>;
+  setAmount: (amount: number) => void;
+  setTips: (tips: number, refNumber: string) => void;
+  collectAndCapture: () => Promise<
+    { refNumber: string } & POSLinkErrorResponse
+  >;
 }
 
 /**
@@ -132,8 +135,8 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
   useListener(FINISH_DISCOVERING_READERS, onFinishDiscoveringReaders);
 
   return {
-    initialize: () => {
-      POSLink.doInit();
+    initialize: (ecrNumber: number) => {
+      POSLink.doInit(ecrNumber);
       setIsInitialized(true);
     },
     isInitialized: isInitialized,
@@ -141,9 +144,8 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
     cancelDiscovering: POSLink.cancelDiscovering,
     connectBluetoothReader: POSLink.connectBluetoothReader,
     connectTcpReader: POSLink.connectTcpReader,
-    setAmount: (amount: number, tips: number = 0) => {
-      POSLink.setAmount(amount, tips);
-    },
+    setAmount: POSLink.setAmount,
+    setTips: POSLink.setTips,
     collectAndCapture: POSLink.collectAndCapture
   };
 }
