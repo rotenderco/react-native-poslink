@@ -1,5 +1,12 @@
 
 
+## [0.2.2](https://github.com/rotenderco/react-native-poslink/compare/v0.2.1...v0.2.2) (2024-06-27)
+
+
+### Bug Fixes
+
+* add tips ([9687b40](https://github.com/rotenderco/react-native-poslink/commit/9687b405b9a2f11a1dc2f784d5cdcf6cb561690b))
+
 ## [0.2.1](https://github.com/rotenderco/react-native-poslink/compare/v0.2.0...v0.2.1) (2024-06-26)
 
 
