@@ -225,6 +225,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @ReactMethod()
   @SuppressWarnings("unused")
   public void cancel() {
+    Log.d(NAME, "cancel");
     this.terminal.cancel();
   }
 
