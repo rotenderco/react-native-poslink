@@ -23,7 +23,6 @@ public class RNDiscoveryListener {
     ReactApplicationContext reactContext,
     Promise promise
   ) {
-//    this.reactContext = reactContext;
     this.eventEmitter = reactContext.getJSModule(RCTDeviceEventEmitter.class);
   }
 

@@ -23,21 +23,18 @@ import com.pax.poslinkadmin.constant.TransactionType;
 import com.pax.poslinkadmin.util.AmountRequest;
 import com.pax.poslinksemiintegration.POSLinkSemi;
 import com.pax.poslinksemiintegration.Terminal;
-import com.pax.poslinksemiintegration.constant.TipRequestFlag;
 import com.pax.poslinksemiintegration.transaction.DoCreditRequest;
 import com.pax.poslinksemiintegration.transaction.DoCreditResponse;
 import com.pax.poslinksemiintegration.util.TraceRequest;
-import com.pax.poslinksemiintegration.util.TransactionBehavior;
 import com.poslink.bluetoothscan.BluetoothScanner;
-import com.poslink.bluetoothscan.Reader;
 import com.poslink.exceptions.BluetoothConnectionException;
 import com.poslink.exceptions.POSLinkException;
 import com.poslink.exceptions.PaymentException;
 import com.poslink.exceptions.TcpConnectionException;
 import com.poslink.listeners.RNDiscoveryListener;
+import com.poslink.listeners.RNReportStatusListener;
 
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 
 @ReactModule(name = PoslinkModule.NAME)
@@ -63,64 +60,12 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     return NAME;
   }
 
-  // Example method
-  // See https://reactnative.dev/docs/native-modules-android
-//  @ReactMethod
-//  public void multiply(double a, double b, Promise promise) {
-//    promise.resolve(a * b);
-//  }
-
   @ReactMethod
   @SuppressWarnings("unused")
   public void doInit(int ecrNumber) {
-//    this.setBluetoothSetting();
-    // Setting logs
-//    logSetting.setEnable(sharedPreferences.getBoolean("LOG_ENABLE", true));
-//    logSetting.setLevel(LogSetting.LogLevel.values()[sharedPreferences.getInt("LOG_LEVEL", 1)]);
-//    logSetting.setDays(sharedPreferences.getInt("LOG_DAYS", 30));
-//    logSetting.setFileName(sharedPreferences.getString("LOG_FILE_NAME", "POSLog"));
-//    logSetting.setFilePath(sharedPreferences.getString("LOG_FILE_PATH", ""));
-//    LogSetting logSetting = new LogSetting();
-//    logSetting.setLevel(LogSetting.LogLevel.values()[1]);
-//    logSetting.setDays(30);
-//    logSetting.setEnable(false);
-//    logSetting.setFilePath("");
-//    logSetting.setFileName("POSLog");
-//    POSLinkSemi.getInstance().setLogSetting(logSetting);
-
-//    this.setBluetoothSetting();
     this.ecrNumber = String.valueOf(ecrNumber);
     this.isInitialized = true;
     Log.d(NAME, "init POSLink");
-//    POSLinkAndroid.init(getReactApplicationContext());
-//    Log.d(NAME, "init POSLink");
-
-//    CommSetting commSetting = new CommSetting();
-//    commSetting.setType(CommSetting.TCP);
-//    commSetting.setDestIP("192.168.1.46");
-//    commSetting.setDestPort("10009");
-//    commSetting.setTimeOut("20000");
-//
-//    PosLink poslink = new PosLink();
-//    poslink.SetCommSetting(commSetting);
-//
-//    Log.d(NAME, "init POSLink");
-//
-//    ManageRequest manageReq = new ManageRequest();
-//    manageReq.TransType = manageReq.ParseTransType("INIT");
-//    poslink.ManageRequest = manageReq;
-//
-//    ProcessTransResult transResult = poslink.ProcessTrans();
-//    Log.d(NAME, transResult.Code + ":" + transResult.Msg);
-//
-//    ManageResponse manageRes = poslink.ManageResponse;
-//    Log.d(NAME, manageRes.ResultCode + " - " + manageRes.ResultTxt
-//      + "\r\nSN: " + manageRes.SN
-//      + "\r\nModel Name: " + manageRes.ModelName
-//      + "\r\nOS Version: " + manageRes.OSVersion
-//      + "\r\nMac Address: " + manageRes.MacAddress
-//      + "\r\nLines Per Screen: " + manageRes.LinesPerScreen
-//      + "\r\nCharsPerLine: " + manageRes.CharsPerLine);
   }
 
   @ReactMethod
@@ -137,20 +82,6 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     this.bluetoothScanner = new BluetoothScanner(getReactApplicationContext(), listener);
     this.bluetoothScanner.scanLeDevice();
   }
-//  public void setBluetoothSetting() {
-//    BluetoothSetting bluetoothSetting = new BluetoothSetting();
-//    bluetoothSetting.setTimeout(60000);
-//    bluetoothSetting.setMacAddr("54:81:2D:A2:F9:1A");
-//    if (!bluetoothSetting.equals(commSetting) && terminal != null) {
-//      POSLinkSemi.getInstance().removeTerminal(terminal);
-//    }
-//    commSetting = bluetoothSetting;
-////    TcpSetting tcpSetting = new TcpSetting();
-////    tcpSetting.setIp("192.168.1.46");
-////    tcpSetting.setPort("10009");
-////    tcpSetting.setTimeout(60000);
-////    commSetting = tcpSetting;
-//  }
 
   @ReactMethod
   @SuppressWarnings("unused")
@@ -185,7 +116,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       POSLinkSemi.getInstance().removeTerminal(this.terminal);
     }
     this.commSetting = bluetoothSetting;
-    this.terminal = POSLinkSemi.getInstance().getTerminal(getReactApplicationContext(), this.commSetting);
+    this.terminal = this.getTerminal();
     Log.d(NAME, "Bluetooth Connected: " + (this.terminal != null));
     WritableMap retValueMap = Arguments.createMap();
     if (this.terminal == null) { // connect failed
@@ -194,6 +125,15 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       return;
     }
     promise.resolve(retValueMap);
+  }
+
+  private Terminal getTerminal() {
+    Terminal tm = POSLinkSemi.getInstance().getTerminal(getReactApplicationContext(), this.commSetting);
+    if (tm != null) {
+      Log.d(NAME, "setReportStatusListener");
+      tm.setReportStatusListener(new RNReportStatusListener(getReactApplicationContext()));
+    }
+    return tm;
   }
 
   @ReactMethod
@@ -211,7 +151,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       POSLinkSemi.getInstance().removeTerminal(this.terminal);
     }
     this.commSetting = tcpSetting;
-    this.terminal = POSLinkSemi.getInstance().getTerminal(getReactApplicationContext(), this.commSetting);
+    this.terminal = this.getTerminal();
     if (this.terminal == null) { // connect failed
       WritableMap retValueMap = Arguments.createMap();
       retValueMap.putMap("error", new TcpConnectionException(400).toWritableMap());
@@ -234,8 +174,6 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     AmountRequest amountRequest = new AmountRequest();
     amountRequest.setTransactionAmount(String.valueOf(amount));
     this.doCreditRequest.setAmountInformation(amountRequest);
-
-//    return ecrRefNumber;
   }
 
   @ReactMethod
@@ -284,6 +222,12 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     });
   }
 
+  @ReactMethod()
+  @SuppressWarnings("unused")
+  public void cancel() {
+    this.terminal.cancel();
+  }
+
   @ReactMethod(isBlockingSynchronousMethod = true)
   @SuppressWarnings("unused")
   public WritableMap getEventConstants() {
@@ -292,5 +236,15 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       constantsMap.putString(c.name(), c.listenerName);
     }
     return constantsMap;
+  }
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  @SuppressWarnings("unused")
+  public WritableMap getReportStatus() {
+    WritableMap statusMap = Arguments.createMap();
+    for (TerminalReportStatus c : TerminalReportStatus.values()) {
+      statusMap.putInt(c.name(), c.status);
+    }
+    return statusMap;
   }
 }

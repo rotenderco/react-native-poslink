@@ -26,6 +26,7 @@ export const {
   FINISH_DISCOVERING_READERS,
   FINISH_INSTALLING_UPDATE,
   REQUEST_READER_DISPLAY_MESSAGE,
+  REQUEST_READER_STATUS,
   REQUEST_READER_INPUT,
   REPORT_AVAILABLE_UPDATE,
   REPORT_UNEXPECTED_READER_DISCONNECT,
@@ -43,6 +44,31 @@ export const {
   REPORT_LOW_BATTERY_WARNING,
   REPORT_READER_EVENT
 } = POSLink.getEventConstants();
+
+export const {
+  NONE,
+  CARD_INPUT,
+  PIN_ENTRY,
+  SIGNATURE,
+  ONLINE_PROCESSING,
+  SECOND_CARD_INPUT_4_REPLACE_MERGE,
+  SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY,
+  PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV,
+  EMV_CARD_INPUT,
+  EMV_PIN_ENTRY,
+  EMV_SIGNATURE,
+  EMV_ONLINE_PROCESSING,
+  EMV_SECOND_CARD_INPUT_4_REPLACE_MERGE,
+  EMV_SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY,
+  EMV_PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV,
+  EMV_SEE_PHONE,
+  EMV_TRY_ANOTHER_CARD,
+  EMV_PRESENT_ONE_CARD_ONLY,
+  EMV_FALLBACK_SWIPE,
+  EMV_ENTERING_CASHBACK,
+  EMV_REMOVE_CARD,
+  EMV_RE_INSERT_CARD
+} = POSLink.getReportStatus();
 
 export interface POSLinkError extends Error {
   message: string;
@@ -79,6 +105,7 @@ export interface POSLinkTernimal {
   collectAndCapture: () => Promise<
     { refNumber: string } & POSLinkErrorResponse
   >;
+  cancel: () => void;
 }
 
 /**
@@ -94,6 +121,7 @@ export declare type Props = {
   // onDidFinishInstallingUpdate?(result: UpdateSoftwareResultType): void;
   // onDidRequestReaderInput?(input: Reader.InputOptions[]): void;
   // onDidRequestReaderDisplayMessage?(message: Reader.DisplayMessage): void;
+  onDidRequestReaderStatus?(status: number): void;
   // onDidChangeConnectionStatus?(status: Reader.ConnectionStatus): void;
   // onDidChangePaymentStatus?(status: PaymentStatus): void;
   // onDidStartReaderReconnect?(): void;
@@ -108,7 +136,7 @@ export declare type Props = {
 export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
   const {
     onUpdateDiscoveredReaders,
-    onFinishDiscoveringReaders
+    onFinishDiscoveringReaders,
     // onDidFinishInstallingUpdate,
     // onDidReportAvailableUpdate,
     // onDidReportReaderSoftwareUpdateProgress,
@@ -116,6 +144,7 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
     // onDidStartInstallingUpdate,
     // onDidRequestReaderInput,
     // onDidRequestReaderDisplayMessage,
+    onDidRequestReaderStatus
     // onDidChangePaymentStatus,
     // onDidChangeConnectionStatus,
     // onDidStartReaderReconnect,
@@ -133,6 +162,7 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
 
   useListener(UPDATE_DISCOVERED_READERS, onUpdateDiscoveredReaders);
   useListener(FINISH_DISCOVERING_READERS, onFinishDiscoveringReaders);
+  useListener(REQUEST_READER_STATUS, onDidRequestReaderStatus);
 
   return {
     initialize: (ecrNumber: number) => {
@@ -146,6 +176,7 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
     connectTcpReader: POSLink.connectTcpReader,
     setAmount: POSLink.setAmount,
     setTips: POSLink.setTips,
-    collectAndCapture: POSLink.collectAndCapture
+    collectAndCapture: POSLink.collectAndCapture,
+    cancel: POSLink.cancel
   };
 }

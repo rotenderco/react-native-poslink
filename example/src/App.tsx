@@ -59,6 +59,9 @@ export default function App() {
         return;
       }
       console.log("Discovery Readers Finished.");
+    },
+    onDidRequestReaderStatus: (status: number) => {
+      console.log("status: ", status);
     }
   });
   const {
@@ -69,7 +72,8 @@ export default function App() {
     cancelDiscovering,
     setAmount,
     setTips,
-    collectAndCapture
+    collectAndCapture,
+    cancel
   } = poslinkTerminal;
 
   useEffect(() => {
@@ -181,6 +185,10 @@ export default function App() {
     setTipValue("0");
   }, [tipValue, setTips, collectAndCapture, refNumber]);
 
+  const onCancel = useCallback(() => {
+    cancel();
+  }, [cancel]);
+
   return (
     <View style={styles.container}>
       <Text>isInitialized: {String(isInitialized)}</Text>
@@ -218,6 +226,9 @@ export default function App() {
           <Button title="Collect" onPress={startPOS}></Button>
         </>
       )}
+      <View style={{ marginTop: 24 }}>
+        <Button title="Cancel" onPress={onCancel}></Button>
+      </View>
     </View>
   );
 }

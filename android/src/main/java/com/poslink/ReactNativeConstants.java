@@ -7,6 +7,7 @@ public enum ReactNativeConstants {
   FINISH_DISCOVERING_READERS("didFinishDiscoveringReaders"),
   FINISH_INSTALLING_UPDATE("didFinishInstallingUpdate"),
   REQUEST_READER_DISPLAY_MESSAGE("didRequestReaderDisplayMessage"),
+  REQUEST_READER_STATUS("didRequestReaderStatus"),
   REQUEST_READER_INPUT("didRequestReaderInput"),
   REPORT_AVAILABLE_UPDATE("didReportAvailableUpdate"),
   REPORT_UNEXPECTED_READER_DISCONNECT("didReportUnexpectedReaderDisconnect"),
@@ -30,3 +31,4 @@ public enum ReactNativeConstants {
     this.listenerName = listenerName;
   }
 }
+
