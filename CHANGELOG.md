@@ -1,5 +1,12 @@
 
 
+## [0.2.3](https://github.com/rotenderco/react-native-poslink/compare/v0.2.2...v0.2.3) (2024-07-01)
+
+
+### Bug Fixes
+
+* cancel function ([b388f47](https://github.com/rotenderco/react-native-poslink/commit/b388f47791d28fde99d72269e97cacfccdad6ced))
+
 ## [0.2.2](https://github.com/rotenderco/react-native-poslink/compare/v0.2.1...v0.2.2) (2024-06-27)
 
 
