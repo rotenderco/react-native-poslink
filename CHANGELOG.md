@@ -1,5 +1,12 @@
 
 
+## [0.3.1](https://github.com/rotenderco/react-native-poslink/compare/v0.3.0...v0.3.1) (2024-07-10)
+
+
+### Bug Fixes
+
+* add terminal report status enuma ([94e0ba3](https://github.com/rotenderco/react-native-poslink/commit/94e0ba3aa3e968624e121292d4f95d2cd24c595e))
+
 # [0.3.0](https://github.com/rotenderco/react-native-poslink/compare/v0.2.3...v0.3.0) (2024-07-10)
 
 
