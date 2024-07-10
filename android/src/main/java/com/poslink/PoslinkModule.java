@@ -240,16 +240,10 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @ReactMethod
   @SuppressWarnings("unused")
   public void collectAndCapture(Promise promise) {
-    this.collectAndCapture(this.ecrNumber, promise);
-  }
-
-  @ReactMethod
-  @SuppressWarnings("unused")
-  public void collectAndCapture(String clerkId, Promise promise) {
     Log.d(NAME, "Start credit request");
 
     CashierRequest cashierRequest = new CashierRequest();
-    cashierRequest.setClerkId(clerkId);
+    cashierRequest.setClerkId(this.ecrNumber);
     this.doCreditRequest.setCashierInformation(cashierRequest);
 
     Executors.newSingleThreadExecutor().submit(new Runnable() {

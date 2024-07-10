@@ -62,7 +62,7 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | undefined>();
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isDiscovering, setIsDiscovering] = useState<boolean>(false);
-  const [clerkId, setClerkId] = useState<string>(`${ UNIT_NUMBER }`);
+  // const [clerkId, setClerkId] = useState<string>(`${ UNIT_NUMBER }`);
   const [connectStatus, setConnectStatus] = useState<string>("Disconnection");
   const [price, setPrice] = useState<string>("0");
   const [tipValue, setTipValue] = useState<string>("0");
@@ -227,7 +227,7 @@ export default function App() {
     setAmount(Number(price) * 100, tax * Number(price) * 100);
     // setAmount(Number(price) * 100);
     console.log(`Start collecting for $${Number(price).toFixed(2)}`);
-    const { error, refNumber, ...restRtv } = await collectAndCapture(clerkId);
+    const { error, refNumber, ...restRtv } = await collectAndCapture();
     if (error) {
       console.error("Capture failed: ", error.message, ", response: ", restRtv);
       return;
@@ -246,7 +246,7 @@ export default function App() {
   const submit = useCallback(async () => {
     setTips(Number(tipValue) * 100, refNumber);
     console.log(`Start collecting tips for $${Number(tipValue).toFixed(2)}`);
-    const { error } = await collectAndCapture(clerkId);
+    const { error } = await collectAndCapture();
     if (error) {
       console.error("Capture failed: ", error.message);
       return;
@@ -305,7 +305,7 @@ export default function App() {
     <View style={styles.container}>
       <Text>isInitialized: {String(isInitialized)}</Text>
       <Text style={{ marginBottom: 20 }}>Connected: {connectStatus}</Text>
-      <View style={ { display: "flex", flexDirection: "row", gap: 2, alignItems: "center", marginBottom: 20 } }>
+      {/* <View style={ { display: "flex", flexDirection: "row", gap: 2, alignItems: "center", marginBottom: 20 } }>
         <Text>Clerk:</Text>
         <TextInput
           value={ clerkId }
@@ -316,7 +316,7 @@ export default function App() {
             borderWidth: 1
           }}
         ></TextInput>
-      </View>
+      </View> */}
       {tiping ? (
         <>
           <Text>Tips($):</Text>

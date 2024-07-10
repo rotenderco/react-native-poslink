@@ -124,9 +124,7 @@ export interface POSLinkTernimal {
   }) => Promise<POSLinkErrorResponse>;
   setAmount: (amount: number, tax?: number) => void;
   setTips: (tips: number, refNumber: string) => void;
-  collectAndCapture: (
-    clerkId: string
-  ) => Promise<CaptureResponse & POSLinkErrorResponse>;
+  collectAndCapture: () => Promise<CaptureResponse & POSLinkErrorResponse>;
   cancel: () => void;
 }
 
