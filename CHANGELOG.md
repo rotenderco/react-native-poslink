@@ -1,5 +1,17 @@
 
 
+# [0.3.0](https://github.com/rotenderco/react-native-poslink/compare/v0.2.3...v0.3.0) (2024-07-10)
+
+
+### Bug Fixes
+
+* add log for cancel function ([5d0616e](https://github.com/rotenderco/react-native-poslink/commit/5d0616e32c05a7dd487996d808f2f71ae848436d))
+
+
+### Features
+
+* improve the response data of do credit request ([cf0211c](https://github.com/rotenderco/react-native-poslink/commit/cf0211c94ae1401f141f69c71f2ad46d9c95ed09))
+
 ## [0.2.3](https://github.com/rotenderco/react-native-poslink/compare/v0.2.2...v0.2.3) (2024-07-01)
 
 
