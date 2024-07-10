@@ -26,7 +26,6 @@ export const {
   FINISH_DISCOVERING_READERS,
   FINISH_INSTALLING_UPDATE,
   REQUEST_READER_DISPLAY_MESSAGE,
-  REQUEST_READER_STATUS,
   REQUEST_READER_INPUT,
   REPORT_AVAILABLE_UPDATE,
   REPORT_UNEXPECTED_READER_DISCONNECT,
@@ -141,9 +140,8 @@ export declare type Props = {
   // onDidFinishInstallingUpdate?(result: UpdateSoftwareResultType): void;
   // onDidRequestReaderInput?(input: Reader.InputOptions[]): void;
   // onDidRequestReaderDisplayMessage?(message: Reader.DisplayMessage): void;
-  onDidRequestReaderStatus?(status: ReportStatus): void;
   // onDidChangeConnectionStatus?(status: Reader.ConnectionStatus): void;
-  // onDidChangePaymentStatus?(status: PaymentStatus): void;
+  onDidChangePaymentStatus?(status: ReportStatus): void;
   // onDidStartReaderReconnect?(): void;
   // onDidSucceedReaderReconnect?(): void;
   // onDidFailReaderReconnect?(): void;
@@ -164,8 +162,7 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
     // onDidStartInstallingUpdate,
     // onDidRequestReaderInput,
     // onDidRequestReaderDisplayMessage,
-    onDidRequestReaderStatus
-    // onDidChangePaymentStatus,
+    onDidChangePaymentStatus
     // onDidChangeConnectionStatus,
     // onDidStartReaderReconnect,
     // onDidSucceedReaderReconnect,
@@ -182,7 +179,7 @@ export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
 
   useListener(UPDATE_DISCOVERED_READERS, onUpdateDiscoveredReaders);
   useListener(FINISH_DISCOVERING_READERS, onFinishDiscoveringReaders);
-  useListener(REQUEST_READER_STATUS, onDidRequestReaderStatus);
+  useListener(CHANGE_PAYMENT_STATUS, onDidChangePaymentStatus);
 
   return {
     initialize: (ecrNumber: number) => {

@@ -20,6 +20,6 @@ public class RNReportStatusListener implements ReportStatusListener {
   @Override
   public void onReportStatus(int status) {
     Log.d(NAME, "status: " + status);
-    this.eventEmitter.emit(ReactNativeConstants.REQUEST_READER_STATUS.listenerName, status);
+    this.eventEmitter.emit(ReactNativeConstants.CHANGE_PAYMENT_STATUS.listenerName, status);
   }
 }

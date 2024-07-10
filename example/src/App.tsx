@@ -131,7 +131,7 @@ export default function App() {
       }
       console.log("Discovery Readers Finished.");
     },
-    onDidRequestReaderStatus: (status: ReportStatus) => {
+    onDidChangePaymentStatus: (status: ReportStatus) => {
       console.log("status: ", ReportStatus[status], status);
     }
   });
