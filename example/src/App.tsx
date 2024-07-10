@@ -225,6 +225,7 @@ export default function App() {
 
   const startPOS = useCallback(async () => {
     setAmount(Number(price) * 100, tax * Number(price) * 100);
+    // setAmount(Number(price) * 100);
     console.log(`Start collecting for $${Number(price).toFixed(2)}`);
     const { error, refNumber, ...restRtv } = await collectAndCapture(clerkId);
     if (error) {
