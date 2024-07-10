@@ -45,30 +45,32 @@ export const {
   REPORT_READER_EVENT
 } = POSLink.getEventConstants();
 
-export const {
-  NONE,
-  CARD_INPUT,
-  PIN_ENTRY,
-  SIGNATURE,
-  ONLINE_PROCESSING,
-  SECOND_CARD_INPUT_4_REPLACE_MERGE,
-  SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY,
-  PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV,
-  EMV_CARD_INPUT,
-  EMV_PIN_ENTRY,
-  EMV_SIGNATURE,
-  EMV_ONLINE_PROCESSING,
-  EMV_SECOND_CARD_INPUT_4_REPLACE_MERGE,
-  EMV_SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY,
-  EMV_PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV,
-  EMV_SEE_PHONE,
-  EMV_TRY_ANOTHER_CARD,
-  EMV_PRESENT_ONE_CARD_ONLY,
-  EMV_FALLBACK_SWIPE,
-  EMV_ENTERING_CASHBACK,
-  EMV_REMOVE_CARD,
-  EMV_RE_INSERT_CARD
-} = POSLink.getReportStatus();
+const reportStatus = POSLink.getReportStatus();
+
+export enum ReportStatus {
+  NONE = reportStatus.NONE,
+  CARD_INPUT = reportStatus.CARD_INPUT,
+  PIN_ENTRY = reportStatus.PIN_ENTRY,
+  SIGNATURE = reportStatus.SIGNATURE,
+  ONLINE_PROCESSING = reportStatus.ONLINE_PROCESSING,
+  SECOND_CARD_INPUT_4_REPLACE_MERGE = reportStatus.SECOND_CARD_INPUT_4_REPLACE_MERGE,
+  SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY = reportStatus.SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY,
+  PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV = reportStatus.PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV,
+  EMV_CARD_INPUT = reportStatus.EMV_CARD_INPUT,
+  EMV_PIN_ENTRY = reportStatus.EMV_PIN_ENTRY,
+  EMV_SIGNATURE = reportStatus.EMV_SIGNATURE,
+  EMV_ONLINE_PROCESSING = reportStatus.EMV_ONLINE_PROCESSING,
+  EMV_SECOND_CARD_INPUT_4_REPLACE_MERGE = reportStatus.EMV_SECOND_CARD_INPUT_4_REPLACE_MERGE,
+  EMV_SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY = reportStatus.EMV_SIGNATURE_RETRY_BY_PRESSING_CLEAR_KEY,
+  EMV_PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV = reportStatus.EMV_PIN_RETRY_BY_INPUTTING_WRONG_OFFLINE_PIN_4_EMV,
+  EMV_SEE_PHONE = reportStatus.EMV_SEE_PHONE,
+  EMV_TRY_ANOTHER_CARD = reportStatus.EMV_TRY_ANOTHER_CARD,
+  EMV_PRESENT_ONE_CARD_ONLY = reportStatus.EMV_PRESENT_ONE_CARD_ONLY,
+  EMV_FALLBACK_SWIPE = reportStatus.EMV_FALLBACK_SWIPE,
+  EMV_ENTERING_CASHBACK = reportStatus.EMV_ENTERING_CASHBACK,
+  EMV_REMOVE_CARD = reportStatus.EMV_REMOVE_CARD,
+  EMV_RE_INSERT_CARD = reportStatus.EMV_RE_INSERT_CARD
+}
 
 export interface POSLinkError extends Error {
   message: string;
@@ -141,7 +143,7 @@ export declare type Props = {
   // onDidFinishInstallingUpdate?(result: UpdateSoftwareResultType): void;
   // onDidRequestReaderInput?(input: Reader.InputOptions[]): void;
   // onDidRequestReaderDisplayMessage?(message: Reader.DisplayMessage): void;
-  onDidRequestReaderStatus?(status: number): void;
+  onDidRequestReaderStatus?(status: ReportStatus): void;
   // onDidChangeConnectionStatus?(status: Reader.ConnectionStatus): void;
   // onDidChangePaymentStatus?(status: PaymentStatus): void;
   // onDidStartReaderReconnect?(): void;

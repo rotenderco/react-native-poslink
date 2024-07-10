@@ -17,6 +17,7 @@ import {
   Alert
 } from "react-native";
 import {
+  ReportStatus,
   usePOSLinkTerminal,
   type POSLinkError,
   type POSLinkTernimal,
@@ -130,8 +131,8 @@ export default function App() {
       }
       console.log("Discovery Readers Finished.");
     },
-    onDidRequestReaderStatus: (status: number) => {
-      console.log("status: ", status);
+    onDidRequestReaderStatus: (status: ReportStatus) => {
+      console.log("status: ", ReportStatus[status], status);
     }
   });
   const {
