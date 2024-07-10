@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
@@ -19,13 +20,17 @@ import com.pax.poscore.commsetting.CommunicationSetting;
 import com.pax.poscore.commsetting.TcpSetting;
 import com.pax.poslinkadmin.ExecutionResult;
 import com.pax.poslinkadmin.ResponseCode;
+import com.pax.poslinkadmin.constant.StatusReportFlag;
 import com.pax.poslinkadmin.constant.TransactionType;
 import com.pax.poslinkadmin.util.AmountRequest;
 import com.pax.poslinksemiintegration.POSLinkSemi;
 import com.pax.poslinksemiintegration.Terminal;
+import com.pax.poslinksemiintegration.constant.AdditionalResponseDataFlag;
 import com.pax.poslinksemiintegration.transaction.DoCreditRequest;
 import com.pax.poslinksemiintegration.transaction.DoCreditResponse;
+import com.pax.poslinksemiintegration.util.CashierRequest;
 import com.pax.poslinksemiintegration.util.TraceRequest;
+import com.pax.poslinksemiintegration.util.TransactionBehavior;
 import com.poslink.bluetoothscan.BluetoothScanner;
 import com.poslink.exceptions.BluetoothConnectionException;
 import com.poslink.exceptions.POSLinkException;
@@ -34,8 +39,17 @@ import com.poslink.exceptions.TcpConnectionException;
 import com.poslink.listeners.RNDiscoveryListener;
 import com.poslink.listeners.RNReportStatusListener;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @ReactModule(name = PoslinkModule.NAME)
 public class PoslinkModule extends ReactContextBaseJavaModule {
@@ -48,6 +62,8 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   private DoCreditRequest doCreditRequest;
 
   private String ecrNumber;
+
+  private long lastInvoiceNumber = 0;
 
   public PoslinkModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -131,6 +147,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     Terminal tm = POSLinkSemi.getInstance().getTerminal(getReactApplicationContext(), this.commSetting);
     if (tm != null) {
       Log.d(NAME, "setReportStatusListener");
+
       tm.setReportStatusListener(new RNReportStatusListener(getReactApplicationContext()));
     }
     return tm;
@@ -161,18 +178,43 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     promise.resolve(null);
   }
 
+  protected String generateInvoiceNumber() {
+    // 10 digits.
+    long limit = 10000000000L;
+    long invoiceNumber = System.currentTimeMillis() % limit;
+    if ( invoiceNumber <= lastInvoiceNumber ) {
+      invoiceNumber = (lastInvoiceNumber + 1) % limit;
+    }
+    lastInvoiceNumber = invoiceNumber;
+    String invoiceNumberStr = String.valueOf(lastInvoiceNumber);
+    while (invoiceNumberStr.length() < 10) {
+      invoiceNumberStr = String.format("0%s", invoiceNumberStr);
+    }
+    return invoiceNumberStr;
+  }
+
   @ReactMethod
   @SuppressWarnings("unused")
-  public void setAmount(int amount) {
+  public void setAmount(int amount, int tax) {
     this.doCreditRequest = new DoCreditRequest();
+
+    TransactionBehavior transactionBehavior = TransactionBehavior.builder().build();
+    transactionBehavior.setStatusReportFlag(StatusReportFlag.TO_REPORT);
+    transactionBehavior.setAdditionalResponseDataFlag(AdditionalResponseDataFlag.YES);
+    this.doCreditRequest.setTransactionBehavior(transactionBehavior);
+
     this.doCreditRequest.setTransactionType(TransactionType.SALE);
 
     TraceRequest traceRequest = new TraceRequest();
     traceRequest.setEcrReferenceNumber(this.ecrNumber);
+    String invoiceNumber = this.generateInvoiceNumber();
+    traceRequest.setEcrTransactionId(invoiceNumber);
+    traceRequest.setInvoiceNumber(invoiceNumber);
     this.doCreditRequest.setTraceInformation(traceRequest);
 
     AmountRequest amountRequest = new AmountRequest();
     amountRequest.setTransactionAmount(String.valueOf(amount));
+    amountRequest.setTaxAmount(String.valueOf(tax));
     this.doCreditRequest.setAmountInformation(amountRequest);
   }
 
@@ -196,7 +238,18 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @ReactMethod
   @SuppressWarnings("unused")
   public void collectAndCapture(Promise promise) {
+    this.collectAndCapture(this.ecrNumber, promise);
+  }
+
+  @ReactMethod
+  @SuppressWarnings("unused")
+  public void collectAndCapture(String clerkId, Promise promise) {
     Log.d(NAME, "Start credit request");
+
+    CashierRequest cashierRequest = new CashierRequest();
+    cashierRequest.setClerkId(clerkId);
+    this.doCreditRequest.setCashierInformation(cashierRequest);
+
     Executors.newSingleThreadExecutor().submit(new Runnable() {
       @Override
       public void run() {
@@ -207,10 +260,12 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
           if (Objects.equals(doCreditResponse.responseCode(), ResponseCode.OK)) {
             Log.d(NAME, "Payment successful: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
             retValueMap.putString("refNumber", doCreditResponse.traceInformation().referenceNumber());
+            wrapReturnedValue(retValueMap, doCreditResponse);
             promise.resolve(retValueMap);
           } else {
             Log.e(NAME, "Payment failed: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
             retValueMap.putMap("error", new PaymentException(Integer.parseInt(doCreditResponse.responseCode()), doCreditResponse.responseMessage()).toWritableMap());
+            wrapReturnedValue(retValueMap, doCreditResponse);
             promise.resolve(retValueMap);
           }
         } else {
@@ -220,6 +275,58 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
         }
       }
     });
+  }
+
+  private String covertDateTimeISO8601(@Nullable String timeStamp) {
+    if (timeStamp == null || timeStamp.isEmpty()) {
+      return "";
+    }
+    Matcher matcher = Pattern
+      .compile("(\\d{0,4})(\\d{0,2})(\\d{0,2})(\\d{0,2})(\\d{0,2})(\\d{0,2})")
+      .matcher(timeStamp);
+    if(matcher.matches()) {
+      OffsetDateTime offsetDateTime = OffsetDateTime.of(
+        Integer.parseInt(Objects.requireNonNull(matcher.group(1))), // year
+        Integer.parseInt(Objects.requireNonNull(matcher.group(2))), // month
+        Integer.parseInt(Objects.requireNonNull(matcher.group(3))), // day
+        Integer.parseInt(Objects.requireNonNull(matcher.group(4))), // hour
+        Integer.parseInt(Objects.requireNonNull(matcher.group(5))), // minute
+        Integer.parseInt(Objects.requireNonNull(matcher.group(6))), // second
+        0,
+        OffsetDateTime.now().getOffset()
+      );
+      timeStamp = offsetDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+    }
+    return timeStamp;
+  }
+
+  // Follow the GTV Token
+  protected void wrapReturnedValue(WritableMap retValueMap, DoCreditResponse doCreditResponse) {
+    // DateTime
+    retValueMap.putString("dateTime", this.covertDateTimeISO8601(doCreditResponse.traceInformation().timeStamp()));
+
+    // Amount
+    WritableMap amountMap = Arguments.createMap();
+    amountMap.putInt("tax", Integer.parseInt(doCreditResponse.amountInformation().approvedTaxAmount()));
+    amountMap.putInt("total", Integer.parseInt(doCreditResponse.amountInformation().approvedAmount()));
+    retValueMap.putMap("amount", amountMap);
+
+    // Clerk
+    WritableMap clerkMap = Arguments.createMap();
+    clerkMap.putString("numericId", ecrNumber);
+    retValueMap.putMap("clerk", clerkMap);
+
+    // Transaction
+    WritableMap transactionMap = Arguments.createMap();
+    transactionMap.putString("invoice", doCreditResponse.traceInformation().invoiceNumber());
+    transactionMap.putString("token", doCreditResponse.paymentTransactionInformation().token());
+    transactionMap.putString("source", "10");
+    retValueMap.putMap("transaction", transactionMap);
+
+    // Card
+    WritableMap cardMap = Arguments.createMap();
+    cardMap.putString("present", "Y");
+    retValueMap.putMap("card", cardMap);
   }
 
   @ReactMethod()

@@ -86,6 +86,26 @@ export interface POSLinkErrorResponse {
   error?: POSLinkError;
 }
 
+export interface CaptureResponse {
+  refNumber: string;
+  amount: {
+    tax: number;
+    total: number;
+  };
+  card: {
+    present: "Y" | "N";
+  };
+  clerk: {
+    numericId: string;
+  };
+  dateTime: string;
+  transaction: {
+    invoice: string;
+    source: string;
+    token: string;
+  };
+}
+
 export interface POSLinkTernimal {
   initialize: (ecrNumber: number) => void;
   isInitialized: boolean;
@@ -100,11 +120,11 @@ export interface POSLinkTernimal {
     port: string;
     timeout?: number;
   }) => Promise<POSLinkErrorResponse>;
-  setAmount: (amount: number) => void;
+  setAmount: (amount: number, tax: number) => void;
   setTips: (tips: number, refNumber: string) => void;
-  collectAndCapture: () => Promise<
-    { refNumber: string } & POSLinkErrorResponse
-  >;
+  collectAndCapture: (
+    clerkId: string
+  ) => Promise<CaptureResponse & POSLinkErrorResponse>;
   cancel: () => void;
 }
 

@@ -130,22 +130,27 @@
           "trailingComma": "none",
           "useTabs": false,
           "semi": true,
-          "arrowParens": "avoid"
+          "arrowParens": "avoid",
+          "bracketSpacing": true
         }
       ],
+      "block-spacing": ["error", "always"],
+      "computed-property-spacing": ["error", "always"],
+      "comma-spacing": ["error", { "before": false, "after": true }],
       "react/jsx-uses-react": "off",
       "react/react-in-jsx-scope": "off"
     }
   },
   "eslintIgnore": [
     "node_modules/",
-    "lib/"
+    "lib/",
+    "example/"
   ],
   "prettier": {
     "quoteProps": "consistent",
     "singleQuote": true,
     "tabWidth": 2,
-    "trailingComma": "es5",
+    "trailingComma": "none",
     "useTabs": false
   },
   "react-native-builder-bob": {
