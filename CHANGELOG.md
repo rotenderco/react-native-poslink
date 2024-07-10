@@ -1,5 +1,12 @@
 
 
+## [0.3.3](https://github.com/rotenderco/react-native-poslink/compare/v0.3.2...v0.3.3) (2024-07-10)
+
+
+### Bug Fixes
+
+* remove clerkId setting, using ecrNunmber as clerkId ([dbf00ba](https://github.com/rotenderco/react-native-poslink/commit/dbf00ba30ad5a90e909d1db1a408a11c72404309))
+
 ## [0.3.2](https://github.com/rotenderco/react-native-poslink/compare/v0.3.1...v0.3.2) (2024-07-10)
 
 
