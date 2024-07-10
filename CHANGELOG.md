@@ -1,5 +1,12 @@
 
 
+## [0.3.4](https://github.com/rotenderco/react-native-poslink/compare/v0.3.3...v0.3.4) (2024-07-10)
+
+
+### Bug Fixes
+
+* change status event listener to CHANGE_PAYMENT_STATUS ([cd53bad](https://github.com/rotenderco/react-native-poslink/commit/cd53bad3bc32452c570ab3fd2b4b7b2197e7eee5))
+
 ## [0.3.3](https://github.com/rotenderco/react-native-poslink/compare/v0.3.2...v0.3.3) (2024-07-10)
 
 
