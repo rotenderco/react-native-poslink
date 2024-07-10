@@ -1,5 +1,12 @@
 
 
+## [0.3.2](https://github.com/rotenderco/react-native-poslink/compare/v0.3.1...v0.3.2) (2024-07-10)
+
+
+### Bug Fixes
+
+* changed tax as option in the setAmount method ([ef165ce](https://github.com/rotenderco/react-native-poslink/commit/ef165ce4e78cb14b6e28b39f40e045dab9f7b072))
+
 ## [0.3.1](https://github.com/rotenderco/react-native-poslink/compare/v0.3.0...v0.3.1) (2024-07-10)
 
 
