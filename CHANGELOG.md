@@ -1,5 +1,12 @@
 
 
+## [0.3.5](https://github.com/rotenderco/react-native-poslink/compare/v0.3.4...v0.3.5) (2024-07-11)
+
+
+### Bug Fixes
+
+* check the empty tax and amount in the response data ([e001e79](https://github.com/rotenderco/react-native-poslink/commit/e001e79eec3f2a2d9a5bd68cd8d79a2cca76659c))
+
 ## [0.3.4](https://github.com/rotenderco/react-native-poslink/compare/v0.3.3...v0.3.4) (2024-07-10)
 
 
