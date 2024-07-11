@@ -303,8 +303,10 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
 
     // Amount
     WritableMap amountMap = Arguments.createMap();
-    amountMap.putInt("tax", Integer.parseInt(doCreditResponse.amountInformation().approvedTaxAmount()));
-    amountMap.putInt("total", Integer.parseInt(doCreditResponse.amountInformation().approvedAmount()));
+    String tax = doCreditResponse.amountInformation().approvedTaxAmount();
+    amountMap.putInt("tax", tax.isEmpty() ? 0 : Integer.parseInt(tax));
+    String amount = doCreditResponse.amountInformation().approvedAmount();
+    amountMap.putInt("total", amount.isEmpty() ? 0 : Integer.parseInt(amount));
     retValueMap.putMap("amount", amountMap);
 
     // Clerk
