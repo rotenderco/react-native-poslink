@@ -1,5 +1,12 @@
 
 
+# [0.4.0](https://github.com/rotenderco/react-native-poslink/compare/v0.3.5...v0.4.0) (2024-07-15)
+
+
+### Features
+
+* add card holder name after capturing ([417ef2b](https://github.com/rotenderco/react-native-poslink/commit/417ef2b3f7062834e4436ff19f82a255d427b0c5))
+
 ## [0.3.5](https://github.com/rotenderco/react-native-poslink/compare/v0.3.4...v0.3.5) (2024-07-11)
 
 
