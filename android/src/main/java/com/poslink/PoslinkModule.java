@@ -22,6 +22,8 @@ import com.pax.poslinkadmin.ExecutionResult;
 import com.pax.poslinkadmin.ResponseCode;
 import com.pax.poslinkadmin.constant.StatusReportFlag;
 import com.pax.poslinkadmin.constant.TransactionType;
+import com.pax.poslinkadmin.manage.InitResponse;
+import com.pax.poslinkadmin.manage.Manage;
 import com.pax.poslinkadmin.util.AmountRequest;
 import com.pax.poslinksemiintegration.POSLinkSemi;
 import com.pax.poslinksemiintegration.Terminal;
@@ -37,16 +39,14 @@ import com.poslink.exceptions.POSLinkException;
 import com.poslink.exceptions.PaymentException;
 import com.poslink.exceptions.TcpConnectionException;
 import com.poslink.listeners.RNDiscoveryListener;
+import com.poslink.listeners.RNInitializationListener;
 import com.poslink.listeners.RNReportStatusListener;
 
-import java.time.Clock;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
-import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -94,7 +94,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       promise.resolve(errorMap);
       return;
     }
-    RNDiscoveryListener listener = new RNDiscoveryListener(getReactApplicationContext(), promise);
+    RNDiscoveryListener listener = new RNDiscoveryListener(getReactApplicationContext());
     this.bluetoothScanner = new BluetoothScanner(getReactApplicationContext(), listener);
     this.bluetoothScanner.scanLeDevice();
   }
@@ -140,13 +140,34 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       promise.resolve(retValueMap);
       return;
     }
+    this.manageTerminal(this.terminal);
     promise.resolve(retValueMap);
+  }
+
+  protected void manageTerminal(Terminal terminal) {
+    Manage posManage = new Manage(terminal);
+
+    // Init terminal
+    ExecutionResult<InitResponse> executionResult = posManage.init();
+    RNInitializationListener listener = new RNInitializationListener(getReactApplicationContext());
+    if (executionResult.isSuccessful()) {
+      InitResponse initResponse = executionResult.response();
+      if (Objects.equals(initResponse.responseCode(), ResponseCode.OK)) {
+        listener.onSuccess(initResponse);
+        Log.d(NAME, "init terminal successful");
+      } else {
+        Log.d(NAME, "init terminal failure: " + initResponse.responseCode() + ", " + initResponse.responseMessage());
+        listener.onFailure(new POSLinkException(initResponse.responseCode(), initResponse.responseMessage()));
+      }
+    } else {
+      listener.onFailure(new POSLinkException(executionResult.code().ordinal(), executionResult.message()));
+    }
   }
 
   private Terminal getTerminal() {
     Terminal tm = POSLinkSemi.getInstance().getTerminal(getReactApplicationContext(), this.commSetting);
     if (tm != null) {
-      Log.d(NAME, "setReportStatusListener");
+      Log.d(NAME, "init ReportStatusListener");
 
       tm.setReportStatusListener(new RNReportStatusListener(getReactApplicationContext()));
     }
@@ -175,6 +196,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       promise.resolve(retValueMap);
       return;
     }
+    this.manageTerminal(this.terminal);
     promise.resolve(null);
   }
 
@@ -256,15 +278,14 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
           if (Objects.equals(doCreditResponse.responseCode(), ResponseCode.OK)) {
             Log.d(NAME, "Payment successful: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
             retValueMap.putString("refNumber", doCreditResponse.traceInformation().referenceNumber());
-            wrapReturnedValue(retValueMap, doCreditResponse);
-            promise.resolve(retValueMap);
           } else {
             Log.e(NAME, "Payment failed: ["  + doCreditResponse.responseCode() + "]" + doCreditResponse.responseMessage());
             retValueMap.putMap("error", new PaymentException(Integer.parseInt(doCreditResponse.responseCode()), doCreditResponse.responseMessage()).toWritableMap());
-            wrapReturnedValue(retValueMap, doCreditResponse);
-            promise.resolve(retValueMap);
           }
+          wrapReturnedValue(retValueMap, doCreditResponse);
+          promise.resolve(retValueMap);
         } else {
+          terminal.cancel();
           Log.e(NAME, "Do credit request execution failed: " + executionResult.message());
           retValueMap.putMap("error", new POSLinkException(500, "Capture Failed: " + executionResult.message()).toWritableMap());
           promise.resolve(retValueMap);
@@ -324,6 +345,8 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     // Card
     WritableMap cardMap = Arguments.createMap();
     cardMap.putString("present", "Y");
+    String[] cardHolderNameParts = doCreditResponse.accountInformation().cardHolder().split("/");
+    cardMap.putString("cardHolderName", cardHolderNameParts[1] + " " + cardHolderNameParts[0]);
     retValueMap.putMap("card", cardMap);
   }
 

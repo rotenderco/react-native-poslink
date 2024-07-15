@@ -19,6 +19,9 @@ import {
 import {
   ReportStatus,
   usePOSLinkTerminal,
+  type ConnectionStatus,
+  type DisconnectReason,
+  type InitResponse,
   type POSLinkError,
   type POSLinkTernimal,
   type Reader
@@ -71,6 +74,7 @@ export default function App() {
   const [tiping, setTiping] = useState<boolean>(false);
   const [refNumber, setRefNumber] = useState<string>("");
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const currentReader: MutableRefObject<Reader | undefined> = useRef<
     Reader | undefined
   >();
@@ -105,7 +109,7 @@ export default function App() {
     })();
   }, []);
 
-  const poslinkTerminal: POSLinkTernimal = usePOSLinkTerminal({
+  const poslinkTerminal: POSLinkTernimal = usePOSLinkTerminal(UNIT_NUMBER, {
     onUpdateDiscoveredReaders: async (readers: Reader[]) => {
       if (currentReader.current) {
         return;
@@ -131,12 +135,32 @@ export default function App() {
       }
       console.log("Discovery Readers Finished.");
     },
+    onDidInitializationListener: (initResponse: InitResponse) => {
+      console.log("InitResponse: ", initResponse);
+    },
     onDidChangePaymentStatus: (status: ReportStatus) => {
       console.log("status: ", ReportStatus[status], status);
+    },
+    onDidReportUnexpectedReaderDisconnect: (error?: POSLinkError) => {
+      console.error("ReportUnexpectedReaderDisconnect: ", error);
+    },
+    onDidChangeConnectionStatus: (status: ConnectionStatus) => {
+      console.log("ChangeConnectionStatus: ", status);
+    },
+    onDidStartReaderReconnect: () => {
+      console.log("StartReaderReconnect");
+    },
+    onDidSucceedReaderReconnect: () => {
+      console.log("SucceedReaderReconnect");
+    },
+    onDidFailReaderReconnect: () => {
+      console.log("FailReaderReconnect");
+    },
+    onDidDisconnect: (reason?: DisconnectReason) => {
+      console.warn("Disconnect: ", reason);
     }
   });
   const {
-    initialize,
     isInitialized,
     discoverReaders,
     connectBluetoothReader,
@@ -181,14 +205,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (hasPermission && !isInitialized) {
-      initialize(UNIT_NUMBER);
-    }
-  }, [hasPermission, isInitialized, initialize]);
-
-  useEffect(() => {
     if (
-      isInitialized &&
+      hasPermission &&
       !isDiscovering &&
       !currentReader.current &&
       connectStatus === "Disconnection"
@@ -197,7 +215,7 @@ export default function App() {
       discoverReaders();
       setIsDiscovering(true);
     }
-  }, [isInitialized, isDiscovering, connectStatus, discoverReaders]);
+  }, [hasPermission, isDiscovering, connectStatus, discoverReaders]);
 
   const handleConnectReader = useCallback(async () => {
     if (!currentReader.current) {
@@ -234,6 +252,7 @@ export default function App() {
     }
     setRefNumber(refNumber);
     setTiping(needTips);
+    setUserName(restRtv.card.cardHolderName);
     ToastAndroid.show("Payment Successfully", ToastAndroid.CENTER);
     console.log(
       `Collect successfully with price($${Number(price).toFixed(2)})`
@@ -363,6 +382,9 @@ export default function App() {
       )}
       <View style={{ marginBottom: 24 }}>
         <Button title="Cancel" onPress={onCancel}></Button>
+      </View>
+      <View style={{ marginBottom: 24 }}>
+        <Text>Card Holder Name: { userName || "-" }</Text>
       </View>
       <View style={ { display: "flex", flexDirection: "row", gap: 2, alignItems: "center", marginBottom: 20 } }>
         <Text>Invoice:</Text>

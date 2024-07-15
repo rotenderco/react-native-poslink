@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NativeModules, Platform } from "react-native";
 import { useListener } from "./useListener";
 
@@ -20,6 +20,8 @@ const POSLink = NativeModules.POSLinkModule
     );
 
 export const {
+  INITIALIZATION,
+  INITIALIZATION_FAIL,
   FETCH_TOKEN_PROVIDER,
   CHANGE_CONNECTION_STATUS,
   CHANGE_PAYMENT_STATUS,
@@ -71,6 +73,12 @@ export enum ReportStatus {
   EMV_RE_INSERT_CARD = reportStatus.EMV_RE_INSERT_CARD
 }
 
+const enum AppActivated {
+  NOT_SET = "",
+  ACTIVATED = "Y",
+  NOT_ACTIVATED = "N"
+}
+
 export interface POSLinkError extends Error {
   message: string;
   code: string;
@@ -87,6 +95,17 @@ export interface POSLinkErrorResponse {
   error?: POSLinkError;
 }
 
+export interface InitResponse {
+  sn: string;
+  appName: string;
+  appVersion: string;
+  appActivated: AppActivated;
+  licenseExpiry: string;
+  modelName: string;
+  wifiMac: string;
+  osVersion: string;
+}
+
 export interface CaptureResponse {
   refNumber: string;
   amount: {
@@ -95,6 +114,7 @@ export interface CaptureResponse {
   };
   card: {
     present: "Y" | "N";
+    cardHolderName: string;
   };
   clerk: {
     numericId: string;
@@ -108,7 +128,6 @@ export interface CaptureResponse {
 }
 
 export interface POSLinkTernimal {
-  initialize: (ecrNumber: number) => void;
   isInitialized: boolean;
   discoverReaders: () => void;
   cancelDiscovering: () => Promise<boolean>;
@@ -127,65 +146,87 @@ export interface POSLinkTernimal {
   cancel: () => void;
 }
 
+export type ConnectionStatus = "connected" | "connecting" | "notConnected";
+export type DisconnectReason = "disconnectRequested" | "rebootRequested" | "securityReboot" | "criticallyLowBattery" | "poweredOff" | "bluetoothDisabled" | "unknown";
+
 /**
  *  useStripeTerminal hook Props
  */
 export declare type Props = {
   onUpdateDiscoveredReaders?(readers: Reader[]): void;
   onFinishDiscoveringReaders?(error?: POSLinkError): void;
-  // onDidReportUnexpectedReaderDisconnect?(error?: StripeError): void;
+  onDidReportUnexpectedReaderDisconnect?(error?: POSLinkError): void;
+  onDidInitializationListener?(initResponse: InitResponse): void;
+  onDidInitializationFailListener?(error?: POSLinkError): void;
   // onDidReportAvailableUpdate?(update: Reader.SoftwareUpdate): void;
   // onDidStartInstallingUpdate?(update: Reader.SoftwareUpdate): void;
   // onDidReportReaderSoftwareUpdateProgress?(progress: string): void;
   // onDidFinishInstallingUpdate?(result: UpdateSoftwareResultType): void;
   // onDidRequestReaderInput?(input: Reader.InputOptions[]): void;
   // onDidRequestReaderDisplayMessage?(message: Reader.DisplayMessage): void;
-  // onDidChangeConnectionStatus?(status: Reader.ConnectionStatus): void;
+  onDidChangeConnectionStatus?(status: ConnectionStatus): void;
   onDidChangePaymentStatus?(status: ReportStatus): void;
-  // onDidStartReaderReconnect?(): void;
-  // onDidSucceedReaderReconnect?(): void;
-  // onDidFailReaderReconnect?(): void;
+  onDidStartReaderReconnect?(): void;
+  onDidSucceedReaderReconnect?(): void;
+  onDidFailReaderReconnect?(): void;
   // onDidChangeOfflineStatus?(status: OfflineStatus): void;
   // onDidForwardPaymentIntent?(paymentIntent: PaymentIntent.Type, error: StripeError): void;
   // onDidForwardingFailure?(error?: StripeError): void;
-  // onDidDisconnect?(reason?: Reader.DisconnectReason): void;
+  onDidDisconnect?(reason?: DisconnectReason): void;
 };
 
-export function usePOSLinkTerminal(props?: Props): POSLinkTernimal {
+export function usePOSLinkTerminal(ecrNumber: number, props?: Props): POSLinkTernimal {
   const {
     onUpdateDiscoveredReaders,
     onFinishDiscoveringReaders,
+    onDidInitializationListener,
     // onDidFinishInstallingUpdate,
     // onDidReportAvailableUpdate,
     // onDidReportReaderSoftwareUpdateProgress,
-    // onDidReportUnexpectedReaderDisconnect,
+    onDidReportUnexpectedReaderDisconnect,
     // onDidStartInstallingUpdate,
     // onDidRequestReaderInput,
     // onDidRequestReaderDisplayMessage,
-    onDidChangePaymentStatus
-    // onDidChangeConnectionStatus,
-    // onDidStartReaderReconnect,
-    // onDidSucceedReaderReconnect,
-    // onDidFailReaderReconnect,
+    onDidChangePaymentStatus,
+    onDidChangeConnectionStatus,
+    onDidStartReaderReconnect,
+    onDidSucceedReaderReconnect,
+    onDidFailReaderReconnect,
     // onDidChangeOfflineStatus,
     // onDidForwardPaymentIntent,
     // onDidForwardingFailure,
-    // onDidDisconnect,
+    onDidDisconnect
     // onDidUpdateBatteryLevel,
     // onDidReportLowBatteryWarning,
     // onDidReportReaderEvent,
   } = props || {};
   const [isInitialized, setIsInitialized] = useState(false);
 
+  useEffect(() => {
+    if (ecrNumber) {
+      POSLink.doInit(ecrNumber);
+    }
+  }, [ecrNumber]);
+
+  useListener(INITIALIZATION, (initResponse: InitResponse) => {
+    setIsInitialized(true);
+    if (onDidInitializationListener) {
+      return onDidInitializationListener(initResponse);
+    }
+  });
+  useListener(REPORT_UNEXPECTED_READER_DISCONNECT, onDidReportUnexpectedReaderDisconnect);
+  useListener(CHANGE_CONNECTION_STATUS, onDidChangeConnectionStatus);
+  useListener(START_READER_RECONNECT, onDidStartReaderReconnect);
+  useListener(READER_RECONNECT_SUCCEED, onDidSucceedReaderReconnect);
+  useListener(READER_RECONNECT_FAIL, onDidFailReaderReconnect);
+  useListener(DISCONNECT, onDidDisconnect);
+
   useListener(UPDATE_DISCOVERED_READERS, onUpdateDiscoveredReaders);
   useListener(FINISH_DISCOVERING_READERS, onFinishDiscoveringReaders);
+  
   useListener(CHANGE_PAYMENT_STATUS, onDidChangePaymentStatus);
 
   return {
-    initialize: (ecrNumber: number) => {
-      POSLink.doInit(ecrNumber);
-      setIsInitialized(true);
-    },
     isInitialized: isInitialized,
     discoverReaders: POSLink.discoverReaders,
     cancelDiscovering: POSLink.cancelDiscovering,

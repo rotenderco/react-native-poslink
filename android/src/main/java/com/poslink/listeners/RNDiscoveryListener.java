@@ -14,16 +14,12 @@ import com.poslink.bluetoothscan.Reader;
 
 import java.util.List;
 
-public class RNDiscoveryListener {
+public class RNDiscoveryListener extends RNListener {
 
   public static final String NAME = "RNDiscoveryListener";
-  private final RCTDeviceEventEmitter eventEmitter;
 
-  public RNDiscoveryListener(
-    ReactApplicationContext reactContext,
-    Promise promise
-  ) {
-    this.eventEmitter = reactContext.getJSModule(RCTDeviceEventEmitter.class);
+  public RNDiscoveryListener(ReactApplicationContext reactContext) {
+    super(reactContext);
   }
 
   public void onUpdateDiscoveredReaders(List<Reader> readers) {
@@ -39,17 +35,17 @@ public class RNDiscoveryListener {
       writableReaders.pushMap(readerMap);
       Log.d(NAME, reader.toString());
     }
-    this.eventEmitter.emit(ReactNativeConstants.UPDATE_DISCOVERED_READERS.listenerName, writableReaders);
+    this.getEventEmitter().emit(ReactNativeConstants.UPDATE_DISCOVERED_READERS.listenerName, writableReaders);
   }
 
   public void onSuccess() {
     Log.d(NAME, "Success");
-    this.eventEmitter.emit(ReactNativeConstants.FINISH_DISCOVERING_READERS.listenerName, null);
+    this.getEventEmitter().emit(ReactNativeConstants.FINISH_DISCOVERING_READERS.listenerName, null);
   }
 
   public void onFailure(BluetoothScannerException e) {
     Log.d(NAME, "Failure");
-    this.eventEmitter.emit(ReactNativeConstants.FINISH_DISCOVERING_READERS.listenerName, e.toWritableMap());
+    this.getEventEmitter().emit(ReactNativeConstants.FINISH_DISCOVERING_READERS.listenerName, e.toWritableMap());
   }
 
 }

@@ -1,6 +1,8 @@
 package com.poslink;
 
 public enum ReactNativeConstants {
+  INITIALIZATION("didInitializationListener"),
+  INITIALIZATION_FAIL("didInitializationFailListener"),
   CHANGE_CONNECTION_STATUS("didChangeConnectionStatus"),
   CHANGE_PAYMENT_STATUS("didChangePaymentStatus"),
   FETCH_TOKEN_PROVIDER("onFetchTokenProviderListener"),

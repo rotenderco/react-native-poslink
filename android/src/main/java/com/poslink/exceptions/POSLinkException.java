@@ -7,14 +7,19 @@ import com.facebook.react.bridge.WritableMap;
 
 public class POSLinkException extends RuntimeException {
 
-  private final int code;
+  private final String code;
   private final String message;
   public POSLinkException(int code, String message) {
+    this.code = String.valueOf(code);
+    this.message = message;
+  }
+
+  public POSLinkException(String code, String message) {
     this.code = code;
     this.message = message;
   }
 
-  public int getCode() {
+  public String getCode() {
     return code;
   }
 
@@ -36,7 +41,7 @@ public class POSLinkException extends RuntimeException {
     WritableMap errorMap = Arguments.createMap();
     errorMap.putString("message", this.getMessage());
     errorMap.putString("stack", this.getStack());
-    errorMap.putInt("code", this.code);
+    errorMap.putString("code", this.code);
     return errorMap;
   }
 }
