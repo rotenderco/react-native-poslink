@@ -1,5 +1,12 @@
 
 
+# [0.5.0](https://github.com/rotenderco/react-native-poslink/compare/v0.4.0...v0.5.0) (2024-07-17)
+
+
+### Features
+
+* add connection event listener ([07eef65](https://github.com/rotenderco/react-native-poslink/commit/07eef65b015cce20590597164c815391e2bc1d5f))
+
 # [0.4.0](https://github.com/rotenderco/react-native-poslink/compare/v0.3.5...v0.4.0) (2024-07-15)
 
 
