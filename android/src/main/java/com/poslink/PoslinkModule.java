@@ -41,12 +41,18 @@ import com.poslink.exceptions.TcpConnectionException;
 import com.poslink.listeners.RNDiscoveryListener;
 import com.poslink.listeners.RNInitializationListener;
 import com.poslink.listeners.RNReportStatusListener;
+import com.poslink.listeners.connection.RNChangeConnectionStatusListener;
+import com.poslink.listeners.connection.RNDisconnectListener;
+import com.poslink.listeners.connection.RNFailReaderReconnectListener;
+import com.poslink.listeners.connection.RNReportUnexpectedReaderDisconnectListener;
+import com.poslink.listeners.connection.RNStartReaderReconnectListener;
+import com.poslink.listeners.connection.RNSucceedReaderReconnectListener;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,13 +61,23 @@ import java.util.regex.Pattern;
 public class PoslinkModule extends ReactContextBaseJavaModule {
   public static final String NAME = "POSLinkModule";
 
-  private boolean isInitialized = false;
+  private String ecrNumber;
+  private int connectionDetectedDuration = 3 * 60 * 1000; // 3 minutes
+
+  private ReadableMap reader;
+  private boolean autoReconnectOnUnexpectedDisconnect = false;
+  private int connectionTimeout = 60000;
   private Terminal terminal;
   private BluetoothScanner bluetoothScanner;
   private CommunicationSetting commSetting;
   private DoCreditRequest doCreditRequest;
 
-  private String ecrNumber;
+  private RNChangeConnectionStatusListener changeConnectionStatusListener;
+
+  private Timer pingPongTimer;
+
+  //we are going to use a handler to be able to run in our TimerTask
+//  private final Handler handler = new Handler(Looper.getMainLooper());
 
   private long lastInvoiceNumber = 0;
 
@@ -78,22 +94,18 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   @SuppressWarnings("unused")
-  public void doInit(int ecrNumber) {
+  public void doInit(int ecrNumber, int connectionDetectedDuration) {
+    this.stopPingPong();
+    this.changeConnectionStatusListener = new RNChangeConnectionStatusListener(getReactApplicationContext());
     this.ecrNumber = String.valueOf(ecrNumber);
-    this.isInitialized = true;
-    Log.d(NAME, "init POSLink");
+    this.connectionDetectedDuration = connectionDetectedDuration;
+    Log.d(NAME, "init POSLink Module");
   }
 
   @ReactMethod
   @SuppressLint("MissingPermission")
   @SuppressWarnings("unused")
-  public void discoverReaders(Promise promise) {
-    if (!this.isInitialized) {
-      WritableMap errorMap = Arguments.createMap();
-      errorMap.putMap("error", new POSLinkException(500, "The reader hasn't initialized yet!").toWritableMap());
-      promise.resolve(errorMap);
-      return;
-    }
+  public void discoverReaders() {
     RNDiscoveryListener listener = new RNDiscoveryListener(getReactApplicationContext());
     this.bluetoothScanner = new BluetoothScanner(getReactApplicationContext(), listener);
     this.bluetoothScanner.scanLeDevice();
@@ -102,7 +114,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @ReactMethod
   @SuppressWarnings("unused")
   public void cancelDiscovering(Promise promise) {
-    if (!this.isInitialized || this.bluetoothScanner == null) {
+    if (this.bluetoothScanner == null) {
       promise.resolve(false);
       return;
     }
@@ -112,49 +124,71 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @ReactMethod
   @SuppressWarnings("unused")
   public void connectBluetoothReader(ReadableMap params, Promise promise) {
-    ReadableMap readerMap = params.getMap("reader");
-    if (readerMap == null) {
+    this.reader = params.getMap("reader");
+    if (this.reader == null) {
       WritableMap retValueMap = Arguments.createMap();
       retValueMap.putMap("error", new POSLinkException(400, "You must provide a reader").toWritableMap());
       promise.resolve(retValueMap);
       return;
     }
-    String readerAddress = readerMap.getString("address");
-    int connectionTimeout = params.getInt("timeout");
-    if (connectionTimeout == 0) {
-      connectionTimeout = 60000;
+    this.connectionTimeout = params.getInt("timeout");
+    if (this.connectionTimeout == 0) {
+      this.connectionTimeout = 60000;
     }
-    Log.d(NAME, "params: {\"readerAddress\":" + readerAddress + ", \"connectionTimeout\":" + connectionTimeout + "}");
+    this.autoReconnectOnUnexpectedDisconnect = params.getBoolean("autoReconnectOnUnexpectedDisconnect");
+    Log.d(NAME, "params: {\"readerAddress\":" + this.reader.getString("address") + ", \"connectionTimeout\":" + connectionTimeout + ", \"autoReconnectOnUnexpectedDisconnect\":" + autoReconnectOnUnexpectedDisconnect + "}");
+    promise.resolve(this.connectBluetoothReader(false));
+  }
+
+  public WritableMap connectBluetoothReader(boolean isReconnection) {
+    this.stopPingPong();
+    if (this.reader == null) {
+      throw new POSLinkException(400, "You must provide a reader");
+    }
+    this.changeConnectionStatusListener.emit(ConnectionStatus.CONNECTING);
+    if (isReconnection) {
+      new RNStartReaderReconnectListener(getReactApplicationContext());
+    }
     BluetoothSetting bluetoothSetting = new BluetoothSetting();
-    bluetoothSetting.setTimeout(connectionTimeout);
-    bluetoothSetting.setMacAddr(readerAddress);
+    bluetoothSetting.setTimeout(this.connectionTimeout);
+    bluetoothSetting.setMacAddr(this.reader.getString("address"));
     if (!bluetoothSetting.equals(this.commSetting) && this.terminal != null) {
       POSLinkSemi.getInstance().removeTerminal(this.terminal);
     }
     this.commSetting = bluetoothSetting;
     this.terminal = this.getTerminal();
     Log.d(NAME, "Bluetooth Connected: " + (this.terminal != null));
+    if (this.terminal != null) { // connected
+      this.changeConnectionStatusListener.emit(ConnectionStatus.CONNECTED);
+      if (isReconnection) {
+        new RNSucceedReaderReconnectListener(getReactApplicationContext());
+      }
+    }
     WritableMap retValueMap = Arguments.createMap();
     if (this.terminal == null) { // connect failed
+      this.changeConnectionStatusListener.emit(ConnectionStatus.NOT_CONNECTED);
+      if (isReconnection) {
+        new RNFailReaderReconnectListener(getReactApplicationContext());
+      }
       retValueMap.putMap("error", new BluetoothConnectionException(400).toWritableMap());
-      promise.resolve(retValueMap);
-      return;
+      return retValueMap;
     }
     this.manageTerminal(this.terminal);
-    promise.resolve(retValueMap);
+    return retValueMap;
   }
 
   protected void manageTerminal(Terminal terminal) {
-    Manage posManage = new Manage(terminal);
+    Manage terminalManage = terminal.getManage();
 
     // Init terminal
-    ExecutionResult<InitResponse> executionResult = posManage.init();
+    ExecutionResult<InitResponse> executionResult = terminalManage.init();
     RNInitializationListener listener = new RNInitializationListener(getReactApplicationContext());
     if (executionResult.isSuccessful()) {
       InitResponse initResponse = executionResult.response();
       if (Objects.equals(initResponse.responseCode(), ResponseCode.OK)) {
         listener.onSuccess(initResponse);
         Log.d(NAME, "init terminal successful");
+        this.startPingPong(terminal);
       } else {
         Log.d(NAME, "init terminal failure: " + initResponse.responseCode() + ", " + initResponse.responseMessage());
         listener.onFailure(new POSLinkException(initResponse.responseCode(), initResponse.responseMessage()));
@@ -198,6 +232,46 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     }
     this.manageTerminal(this.terminal);
     promise.resolve(null);
+  }
+
+  /**
+   * Heart Beat for Pax reader connection
+   */
+  protected void startPingPong(Terminal terminal) {
+    Log.d(NAME, "start ping pong");
+    this.pingPongTimer = new Timer();
+    this.pingPongTimer.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        ExecutionResult<InitResponse> executionResult = terminal.getManage().init();
+        if (executionResult.isSuccessful()) {
+          InitResponse initResponse = executionResult.response();
+          if (Objects.equals(initResponse.responseCode(), ResponseCode.OK)) {
+            Log.d(NAME, "In connection");
+            changeConnectionStatusListener.emit(ConnectionStatus.CONNECTED);
+          } else {
+            Log.e(NAME, "Disconnected[" + initResponse.responseCode() + "]: " + initResponse.responseMessage());
+            changeConnectionStatusListener.emit(ConnectionStatus.NOT_CONNECTED);
+            new RNDisconnectListener(getReactApplicationContext(), DisconnectReason.UNKNOWN);
+            new RNReportUnexpectedReaderDisconnectListener(getReactApplicationContext(), new POSLinkException(initResponse.responseCode(), initResponse.responseMessage()));
+            if (autoReconnectOnUnexpectedDisconnect) { // start reconnecting
+              connectBluetoothReader(true);
+            }
+          }
+        } else {
+          Log.e(NAME, executionResult.code().name() + ": " + executionResult.message());
+          changeConnectionStatusListener.emit(ConnectionStatus.NOT_CONNECTED);
+          new RNDisconnectListener(getReactApplicationContext(), DisconnectReason.UNKNOWN);
+        }
+      }
+    }, this.connectionDetectedDuration, this.connectionDetectedDuration);
+  }
+
+  protected void stopPingPong() {
+    if (this.pingPongTimer != null) {
+      Log.d(NAME, "stop ping pong");
+      this.pingPongTimer.cancel();
+    }
   }
 
   protected String generateInvoiceNumber() {
@@ -263,6 +337,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @SuppressWarnings("unused")
   public void collectAndCapture(Promise promise) {
     Log.d(NAME, "Start credit request");
+    this.stopPingPong();
 
     CashierRequest cashierRequest = new CashierRequest();
     cashierRequest.setClerkId(this.ecrNumber);
@@ -290,6 +365,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
           retValueMap.putMap("error", new POSLinkException(500, "Capture Failed: " + executionResult.message()).toWritableMap());
           promise.resolve(retValueMap);
         }
+        startPingPong(terminal);
       }
     });
   }
@@ -354,7 +430,9 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
   @SuppressWarnings("unused")
   public void cancel() {
     Log.d(NAME, "cancel");
+    this.stopPingPong();
     this.terminal.cancel();
+    this.startPingPong(this.terminal);
   }
 
   @ReactMethod(isBlockingSynchronousMethod = true)
@@ -375,5 +453,25 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
       statusMap.putInt(c.name(), c.status);
     }
     return statusMap;
+  }
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  @SuppressWarnings("unused")
+  public WritableMap getConnectionStatus() {
+    WritableMap statusMap = Arguments.createMap();
+    for (ConnectionStatus c : ConnectionStatus.values()) {
+      statusMap.putString(c.name(), c.status);
+    }
+    return statusMap;
+  }
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  @SuppressWarnings("unused")
+  public WritableMap getDisconnectReason() {
+    WritableMap reasonMap = Arguments.createMap();
+    for (DisconnectReason c : DisconnectReason.values()) {
+      reasonMap.putString(c.name(), c.reason);
+    }
+    return reasonMap;
   }
 }

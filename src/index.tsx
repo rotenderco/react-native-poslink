@@ -73,6 +73,23 @@ export enum ReportStatus {
   EMV_RE_INSERT_CARD = reportStatus.EMV_RE_INSERT_CARD
 }
 
+const connectionStatus = POSLink.getConnectionStatus();
+export enum ConnectionStatus {
+  CONNECTED = connectionStatus.CONNECTED,
+  CONNECTING = connectionStatus.CONNECTING,
+  NOT_CONNECTED = connectionStatus.NOT_CONNECTED
+}
+
+const disconnectReason = POSLink.getDisconnectReason();
+export enum DisconnectReason {
+  DISCONNECT_REQUESTED = disconnectReason.DISCONNECT_REQUESTED,
+  REBOOT_REQUESTED = disconnectReason.REBOOT_REQUESTED,
+  SECURITY_REQUESTED = disconnectReason.SECURITY_REQUESTED,
+  CRITICALLY_LOW_BATTERY = disconnectReason.CRITICALLY_LOW_BATTERY,
+  POWERED_OFF = disconnectReason.POWERED_OFF,
+  BLUETOOTH_DISABLED = disconnectReason.BLUETOOTH_DISABLED
+}
+
 const enum AppActivated {
   NOT_SET = "",
   ACTIVATED = "Y",
@@ -127,14 +144,17 @@ export interface CaptureResponse {
   };
 }
 
+export interface ConnectionParams {
+  reader: Reader;
+  timeout?: number;
+  autoReconnectOnUnexpectedDisconnect?: boolean;
+}
+
 export interface POSLinkTernimal {
   isInitialized: boolean;
   discoverReaders: () => void;
   cancelDiscovering: () => Promise<boolean>;
-  connectBluetoothReader: (params: {
-    reader: Reader;
-    timeout?: number;
-  }) => Promise<{ reader: Reader } & POSLinkErrorResponse>;
+  connectBluetoothReader: (params: ConnectionParams) => Promise<{ reader: Reader } & POSLinkErrorResponse>;
   connectTcpReader: (params: {
     ip: string;
     port: string;
@@ -145,9 +165,6 @@ export interface POSLinkTernimal {
   collectAndCapture: () => Promise<CaptureResponse & POSLinkErrorResponse>;
   cancel: () => void;
 }
-
-export type ConnectionStatus = "connected" | "connecting" | "notConnected";
-export type DisconnectReason = "disconnectRequested" | "rebootRequested" | "securityReboot" | "criticallyLowBattery" | "poweredOff" | "bluetoothDisabled" | "unknown";
 
 /**
  *  useStripeTerminal hook Props
@@ -169,13 +186,18 @@ export declare type Props = {
   onDidStartReaderReconnect?(): void;
   onDidSucceedReaderReconnect?(): void;
   onDidFailReaderReconnect?(): void;
+  onDidDisconnect?(reason?: DisconnectReason): void;
   // onDidChangeOfflineStatus?(status: OfflineStatus): void;
   // onDidForwardPaymentIntent?(paymentIntent: PaymentIntent.Type, error: StripeError): void;
   // onDidForwardingFailure?(error?: StripeError): void;
-  onDidDisconnect?(reason?: DisconnectReason): void;
 };
 
-export function usePOSLinkTerminal(ecrNumber: number, props?: Props): POSLinkTernimal {
+export interface UsePOSLinkTerminalParams {
+  unitNumber: number;
+  connectionDetectedDuration?: number;
+}
+
+export function usePOSLinkTerminal(params: UsePOSLinkTerminalParams, props?: Props): POSLinkTernimal {
   const {
     onUpdateDiscoveredReaders,
     onFinishDiscoveringReaders,
@@ -183,19 +205,19 @@ export function usePOSLinkTerminal(ecrNumber: number, props?: Props): POSLinkTer
     // onDidFinishInstallingUpdate,
     // onDidReportAvailableUpdate,
     // onDidReportReaderSoftwareUpdateProgress,
-    onDidReportUnexpectedReaderDisconnect,
     // onDidStartInstallingUpdate,
     // onDidRequestReaderInput,
     // onDidRequestReaderDisplayMessage,
     onDidChangePaymentStatus,
+    onDidReportUnexpectedReaderDisconnect,
     onDidChangeConnectionStatus,
     onDidStartReaderReconnect,
     onDidSucceedReaderReconnect,
     onDidFailReaderReconnect,
+    onDidDisconnect
     // onDidChangeOfflineStatus,
     // onDidForwardPaymentIntent,
     // onDidForwardingFailure,
-    onDidDisconnect
     // onDidUpdateBatteryLevel,
     // onDidReportLowBatteryWarning,
     // onDidReportReaderEvent,
@@ -203,10 +225,10 @@ export function usePOSLinkTerminal(ecrNumber: number, props?: Props): POSLinkTer
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    if (ecrNumber) {
-      POSLink.doInit(ecrNumber);
+    if (params.unitNumber) {
+      POSLink.doInit(params.unitNumber, params.connectionDetectedDuration || 3 * 60 * 1000);
     }
-  }, [ecrNumber]);
+  }, [params.unitNumber, params.connectionDetectedDuration]);
 
   useListener(INITIALIZATION, (initResponse: InitResponse) => {
     setIsInitialized(true);
@@ -214,6 +236,8 @@ export function usePOSLinkTerminal(ecrNumber: number, props?: Props): POSLinkTer
       return onDidInitializationListener(initResponse);
     }
   });
+  useListener(CHANGE_PAYMENT_STATUS, onDidChangePaymentStatus);
+
   useListener(REPORT_UNEXPECTED_READER_DISCONNECT, onDidReportUnexpectedReaderDisconnect);
   useListener(CHANGE_CONNECTION_STATUS, onDidChangeConnectionStatus);
   useListener(START_READER_RECONNECT, onDidStartReaderReconnect);
@@ -223,14 +247,18 @@ export function usePOSLinkTerminal(ecrNumber: number, props?: Props): POSLinkTer
 
   useListener(UPDATE_DISCOVERED_READERS, onUpdateDiscoveredReaders);
   useListener(FINISH_DISCOVERING_READERS, onFinishDiscoveringReaders);
-  
-  useListener(CHANGE_PAYMENT_STATUS, onDidChangePaymentStatus);
 
   return {
     isInitialized: isInitialized,
     discoverReaders: POSLink.discoverReaders,
     cancelDiscovering: POSLink.cancelDiscovering,
-    connectBluetoothReader: POSLink.connectBluetoothReader,
+    connectBluetoothReader: (params: ConnectionParams): Promise<{ reader: Reader } & POSLinkErrorResponse> => {
+      return POSLink.connectBluetoothReader({
+        timeout: 60000,
+        autoReconnectOnUnexpectedDisconnect: false,
+        ...params
+      });
+    },
     connectTcpReader: POSLink.connectTcpReader,
     setAmount: (amount: number, tax: number = 0) => {
       return POSLink.setAmount(amount, tax);

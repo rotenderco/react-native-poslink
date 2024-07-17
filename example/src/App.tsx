@@ -17,9 +17,9 @@ import {
   Alert
 } from "react-native";
 import {
+  ConnectionStatus,
   ReportStatus,
   usePOSLinkTerminal,
-  type ConnectionStatus,
   type DisconnectReason,
   type InitResponse,
   type POSLinkError,
@@ -66,7 +66,7 @@ export default function App() {
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isDiscovering, setIsDiscovering] = useState<boolean>(false);
   // const [clerkId, setClerkId] = useState<string>(`${ UNIT_NUMBER }`);
-  const [connectStatus, setConnectStatus] = useState<string>("Disconnection");
+  const [connectStatus, setConnectStatus] = useState<ConnectionStatus>(ConnectionStatus.NOT_CONNECTED);
   const [price, setPrice] = useState<string>("0");
   const [tipValue, setTipValue] = useState<string>("0");
   const [tax] = useState<number>(0.07); // 7%
@@ -109,7 +109,10 @@ export default function App() {
     })();
   }, []);
 
-  const poslinkTerminal: POSLinkTernimal = usePOSLinkTerminal(UNIT_NUMBER, {
+  const poslinkTerminal: POSLinkTernimal = usePOSLinkTerminal({
+    unitNumber: UNIT_NUMBER,
+    connectionDetectedDuration: 3 * 10 * 1000
+  }, {
     onUpdateDiscoveredReaders: async (readers: Reader[]) => {
       if (currentReader.current) {
         return;
@@ -146,6 +149,7 @@ export default function App() {
     },
     onDidChangeConnectionStatus: (status: ConnectionStatus) => {
       console.log("ChangeConnectionStatus: ", status);
+      setConnectStatus(status);
     },
     onDidStartReaderReconnect: () => {
       console.log("StartReaderReconnect");
@@ -209,7 +213,7 @@ export default function App() {
       hasPermission &&
       !isDiscovering &&
       !currentReader.current &&
-      connectStatus === "Disconnection"
+      connectStatus === ConnectionStatus.NOT_CONNECTED
     ) {
       // initialized
       discoverReaders();
@@ -217,27 +221,27 @@ export default function App() {
     }
   }, [hasPermission, isDiscovering, connectStatus, discoverReaders]);
 
+  useEffect(() => {
+    console.log("connectStatus: ", connectStatus);
+  }, [connectStatus]);
+
   const handleConnectReader = useCallback(async () => {
     if (!currentReader.current) {
       return;
     }
-    setConnectStatus("Connecting");
     const { error } = await connectBluetoothReader({
       reader: currentReader.current,
-      timeout: 60000
-      // autoReconnectOnUnexpectedDisconnect: true
+      timeout: 60000,
+      autoReconnectOnUnexpectedDisconnect: true
     });
 
     if (error) {
-      setConnectStatus("Error");
       console.error(
         "Error connecting through the reader via bluetooth: ",
         error.message
       );
       return;
     }
-
-    setConnectStatus("Connected");
     console.log("Reader connected successfully");
   }, [connectBluetoothReader]);
 
