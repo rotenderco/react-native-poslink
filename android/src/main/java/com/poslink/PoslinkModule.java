@@ -309,10 +309,11 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     this.doCreditRequest.setTraceInformation(traceRequest);
 
     AmountRequest amountRequest = new AmountRequest();
-    amountRequest.setTransactionAmount(String.valueOf(amount));
     if (tax > 0) {
       amountRequest.setTaxAmount(String.valueOf(tax));
+      amount += tax;
     }
+    amountRequest.setTransactionAmount(String.valueOf(amount));
     this.doCreditRequest.setAmountInformation(amountRequest);
   }
 
