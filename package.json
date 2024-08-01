@@ -1,6 +1,6 @@
 {
   "name": "@rotender/react-native-poslink",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A react native module of POSLink",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",

@@ -1,5 +1,12 @@
 
 
+## [0.5.1](https://github.com/rotenderco/react-native-poslink/compare/v0.5.0...v0.5.1) (2024-08-01)
+
+
+### Bug Fixes
+
+* calculate the amount when the tax was set ([06ecd9c](https://github.com/rotenderco/react-native-poslink/commit/06ecd9c72b913f272591ab97e72288f59dba66c4))
+
 # [0.5.0](https://github.com/rotenderco/react-native-poslink/compare/v0.4.0...v0.5.0) (2024-07-17)
 
 
