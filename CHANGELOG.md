@@ -1,5 +1,12 @@
 
 
+## [0.5.3](https://github.com/rotenderco/react-native-poslink/compare/v0.5.2...v0.5.3) (2024-08-12)
+
+
+### Bug Fixes
+
+* check if the card holder is null ([fb1c140](https://github.com/rotenderco/react-native-poslink/commit/fb1c140510a219b3d5b609b8067b73c79f7dd874))
+
 ## [0.5.2](https://github.com/rotenderco/react-native-poslink/compare/v0.5.1...v0.5.2) (2024-08-12)
 
 
