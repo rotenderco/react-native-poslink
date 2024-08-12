@@ -423,7 +423,7 @@ public class PoslinkModule extends ReactContextBaseJavaModule {
     WritableMap cardMap = Arguments.createMap();
     cardMap.putString("present", "Y");
     String cardHolder = doCreditResponse.accountInformation().cardHolder();
-    if (cardHolder != null) {
+    if (!cardHolder.isEmpty()) {
       String[] cardHolderNameParts = doCreditResponse.accountInformation().cardHolder().split("/");
       cardMap.putString("cardHolderName", cardHolderNameParts[1] + " " + cardHolderNameParts[0]);
     }
