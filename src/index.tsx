@@ -202,6 +202,7 @@ export function usePOSLinkTerminal(params: UsePOSLinkTerminalParams, props?: Pro
     onUpdateDiscoveredReaders,
     onFinishDiscoveringReaders,
     onDidInitializationListener,
+    onDidInitializationFailListener,
     // onDidFinishInstallingUpdate,
     // onDidReportAvailableUpdate,
     // onDidReportReaderSoftwareUpdateProgress,
@@ -234,6 +235,12 @@ export function usePOSLinkTerminal(params: UsePOSLinkTerminalParams, props?: Pro
     setIsInitialized(true);
     if (onDidInitializationListener) {
       return onDidInitializationListener(initResponse);
+    }
+  });
+  useListener(INITIALIZATION_FAIL, (error: POSLinkError) => {
+    setIsInitialized(false);
+    if (onDidInitializationFailListener) {
+      return onDidInitializationFailListener(error);
     }
   });
   useListener(CHANGE_PAYMENT_STATUS, onDidChangePaymentStatus);
